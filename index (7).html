@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Fazenda Paraíso · Comanda</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --bg: #FBF8F2;
+  --panel: #FFFFFF;
+  --panel-2: #F3EEDF;
+  --paper: #EDE6D6;
+  --paper-dim: #D8CFB9;
+  --ink: #2A2118;
+  --ink-soft: #6B5F4F;
+  --text: #2A2118;
+  --text-dim: #7A6E5C;
+  --red: #C1432E;
+  --red-dark: #8F2F1F;
+  --green: #6B8452;
+  --green-dark: #4B5E39;
+  --amber: #D9A441;
+  --amber-dark: #9A7226;
+  --line: #E3D9C4;
+  --line-soft: #ECE4D3;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+
+.app{max-width:1180px;margin:0 auto;padding:20px 20px 60px;position:relative;z-index:1;}
+
+.bg-watermark{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-repeat:no-repeat;background-position:center 42%;
+  background-size:min(56vw,460px);
+  opacity:0.08;filter:grayscale(1) contrast(1.15);
+}
+
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:22px;flex-wrap:wrap;gap:14px;
+}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand-mark{
+  width:46px;height:46px;border-radius:8px;background:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Oswald',sans-serif;font-weight:700;font-size:20px;color:var(--text);
+  transform:rotate(-3deg);
+  flex-shrink:0;
+}
+.brand h1{
+  font-family:'Oswald',sans-serif;font-weight:600;font-size:24px;
+  letter-spacing:0.5px;margin:0;color:var(--text);text-transform:uppercase;
+}
+.brand p{margin:2px 0 0;font-size:12px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+
+.tabs{display:flex;flex-wrap:wrap;gap:6px;background:var(--panel);padding:5px;border-radius:10px;border:1px solid var(--line-soft);}
+.tab-btn{
+  background:transparent;border:none;color:var(--text-dim);
+  font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.4px;
+  padding:9px 16px;border-radius:7px;cursor:pointer;text-transform:uppercase;
+  transition:all .15s;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{background:var(--red);color:#fff;}
+.tab-badge{
+  display:inline-block;margin-left:6px;background:rgba(0,0,0,.55);color:#fff;
+  border-radius:10px;padding:1px 7px;font-size:11px;font-family:'IBM Plex Mono',monospace;
+}
+
+.view{display:none;}
+.view.active{display:block;}
+
+/* ---------- MESAS ---------- */
+.mesas-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;
+}
+.area-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.area-tab{
+  background:var(--panel);border:1px solid var(--line-soft);color:var(--text-dim);
+  font-family:'Oswald',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:0.3px;
+  padding:8px 14px;border-radius:8px;cursor:pointer;text-transform:uppercase;
+}
+.area-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+.login-screen{
+  position:fixed;inset:0;z-index:100;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.login-card{
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;
+  padding:32px 30px;width:100%;max-width:360px;text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,.08);
+}
+.login-logo{width:64px;height:64px;border-radius:10px;object-fit:cover;margin-bottom:10px;}
+.login-card h2{font-family:'Oswald',sans-serif;text-transform:uppercase;margin:0 0 2px;font-size:20px;color:var(--text);}
+.login-sub{font-size:12.5px;color:var(--text-dim);margin:0 0 20px;}
+.login-card label{display:block;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-dim);font-family:'Oswald',sans-serif;font-weight:600;margin:12px 0 5px;}
+.login-card input{
+  width:100%;padding:11px 12px;border-radius:7px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;
+}
+.senha-wrap{position:relative;}
+.senha-wrap input{padding-right:52px;}
+.senha-toggle{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:var(--panel);border:1px solid var(--line);color:var(--text-dim);
+  width:32px;height:32px;border-radius:50%;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.senha-toggle svg{width:17px;height:17px;}
+.login-erro{
+  background:rgba(193,67,46,.12);color:var(--red-dark);border-radius:6px;
+  padding:8px 10px;font-size:12.5px;margin-bottom:6px;text-align:left;
+}
+
+.filtro-caixa{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.filtro-caixa .field-mini select, .filtro-caixa .field-mini input{
+  background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+  padding:8px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;
+}
+.grafico-box{
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;
+  padding:16px;margin-bottom:22px;overflow-x:auto;
+}
+.grafico-barras{display:flex;align-items:flex-end;gap:10px;height:170px;min-width:min-content;}
+.grafico-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;width:36px;flex-shrink:0;}
+.grafico-valor{font-size:9.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;margin-bottom:3px;white-space:nowrap;}
+.grafico-bar{width:22px;border-radius:4px 4px 0 0;background:var(--red);min-height:2px;}
+.grafico-data{font-size:9.5px;color:var(--text-dim);margin-top:6px;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+
+.toast-erro{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--red-dark);color:#fff;padding:12px 20px;border-radius:8px;
+  font-size:13px;font-family:'Inter',sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);
+  opacity:0;pointer-events:none;transition:all .25s;z-index:200;max-width:90vw;text-align:center;
+}
+.toast-erro.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.user-badge{
+  position:relative;display:flex;align-items:center;gap:8px;cursor:pointer;
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:20px;
+  padding:5px 12px 5px 5px;
+}
+.user-avatar{
+  width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--paper);
+  display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;
+  font-weight:700;font-size:13px;flex-shrink:0;
+}
+.user-badge-email{font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;max-width:none;white-space:nowrap;}
+.user-menu{
+  display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--panel);
+  border:1px solid var(--line-soft);border-radius:10px;padding:10px;min-width:200px;
+  box-shadow:0 10px 30px rgba(0,0,0,.12);z-index:60;
+}
+.user-menu.open{display:block;}
+.user-menu-email{font-size:12.5px;color:var(--text);font-weight:600;padding:4px 6px 2px;word-break:break-all;}
+.user-menu-role{font-size:11px;color:var(--text-dim);padding:0 6px 10px;border-bottom:1px solid var(--line-soft);margin-bottom:8px;}
+.user-menu-sair{
+  width:100%;background:var(--red);color:#fff;border:none;padding:9px;border-radius:6px;
+  font-family:'Oswald',sans-serif;font-weight:600;font-size:12.5px;text-transform:uppercase;cursor:pointer;
+}
+.mesa-card{
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;
+  padding:16px 14px;cursor:pointer;position:relative;transition:transform .12s,border-color .12s;
+  min-height:108px;display:flex;flex-direction:column;justify-content:space-between;
+}
+.mesa-card:hover{transform:translateY(-2px);border-color:var(--line);}
+.mesa-num{
+  font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--text);
+}
+.mesa-status{
+  font-size:11px;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;
+  padding:3px 8px;border-radius:5px;align-self:flex-start;
+}
+.status-livre{background:rgba(107,132,82,.16);color:#3F5730;}
+.status-ocupada{background:rgba(193,67,46,.14);color:#8F2F1F;}
+.status-aguardando{background:rgba(217,164,65,.20);color:#8A6320;}
+.mesa-info{font-size:12px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+
+/* ---------- MODAL COMANDA (ticket) ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(15,11,8,.72);display:none;
+  align-items:flex-start;justify-content:center;padding:30px 16px;z-index:50;overflow-y:auto;
+}
+.overlay.open{display:flex;}
+.ticket{
+  background:var(--paper);color:var(--ink);border-radius:6px;width:100%;max-width:440px;
+  position:relative;box-shadow:0 20px 50px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;max-height:88vh;max-height:88dvh;overflow:hidden;
+}
+.ticket-notch{
+  position:absolute;top:-1px;left:0;right:0;height:14px;
+  background-image:radial-gradient(circle at 10px 0, transparent 7px, var(--paper) 7px);
+  background-size:20px 14px;background-repeat:repeat-x;
+}
+.ticket-head{
+  padding:22px 22px 14px;border-bottom:2px dashed var(--paper-dim);
+  display:flex;justify-content:space-between;align-items:flex-start;
+  flex:0 0 auto;background:var(--paper);position:relative;z-index:1;
+}
+.ticket-head h2{
+  font-family:'Oswald',sans-serif;font-size:22px;margin:0;text-transform:uppercase;letter-spacing:0.5px;
+}
+.ticket-head .meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:4px;}
+.ticket-close{
+  background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 4px;
+}
+.ticket-body{padding:16px 22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);}
+.ticket-section-title{
+  font-family:'Oswald',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--ink-soft);margin:14px 0 8px;
+}
+.cat-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.chip{
+  background:var(--ink);color:var(--paper-dim);border:1px solid var(--ink);
+  padding:5px 11px;border-radius:14px;font-size:12px;cursor:pointer;font-weight:500;
+}
+.chip.active{background:var(--red);color:#fff;border-color:var(--red);}
+.menu-list{max-height:190px;overflow-y:auto;border:1px solid var(--paper-dim);border-radius:6px;}
+.menu-row{
+  display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
+  border-bottom:1px solid var(--paper-dim);cursor:pointer;
+}
+.menu-row:last-child{border-bottom:none;}
+.menu-row:hover{background:var(--paper-dim);}
+.menu-row.indisponivel{opacity:.4;cursor:not-allowed;}
+.menu-row-name{font-size:13.5px;font-weight:500;}
+.menu-row-price{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);}
+.add-btn{
+  background:var(--ink);color:var(--paper);border:none;width:26px;height:26px;border-radius:50%;
+  font-size:16px;cursor:pointer;line-height:1;
+}
+
+.itens-comanda{border-top:2px dashed var(--paper-dim);margin-top:16px;padding-top:12px;}
+.item-line{
+  display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--paper-dim);
+}
+.item-line:last-child{border-bottom:none;}
+.item-qty-ctrl{
+  display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+}
+.qty-btn{
+  width:20px;height:20px;border-radius:4px;border:1px solid var(--ink-soft);background:transparent;
+  color:var(--ink);cursor:pointer;font-size:12px;line-height:1;
+}
+.item-mid{flex:1;}
+.item-name{font-size:13.5px;font-weight:500;}
+.item-obs{font-size:11.5px;color:var(--ink-soft);font-style:italic;}
+.item-obs-input{
+  width:100%;border:none;border-bottom:1px dotted var(--paper-dim);background:transparent;
+  font-size:11.5px;font-family:'Inter',sans-serif;color:var(--ink-soft);padding:2px 0;margin-top:2px;
+}
+.item-status{
+  font-size:9.5px;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;
+  padding:2px 6px;border-radius:4px;white-space:nowrap;height:fit-content;
+}
+.st-pendente{background:#e9e3d3;color:var(--ink-soft);}
+.st-enviado{background:rgba(217,164,65,.25);color:var(--amber-dark);}
+.st-pronto{background:rgba(107,132,82,.25);color:var(--green-dark);}
+.st-entregue{background:rgba(0,0,0,.08);color:var(--ink-soft);}
+.item-price{font-family:'IBM Plex Mono',monospace;font-size:13px;min-width:56px;text-align:right;}
+.item-remove{background:none;border:none;color:var(--red-dark);cursor:pointer;font-size:15px;padding:0 2px;}
+
+.ticket-totais{border-top:2px dashed var(--paper-dim);padding:14px 22px;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;}
+.total-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;font-family:'IBM Plex Mono',monospace;}
+.total-row.grand{font-size:18px;font-weight:600;border-top:1px solid var(--paper-dim);margin-top:6px;padding-top:8px;}
+.taxa-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);margin:6px 0;}
+
+.ticket-actions{display:flex;gap:8px;padding:14px 22px 20px;flex-wrap:wrap;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;}
+.ticket-actions-print-row{display:flex;gap:6px;width:100%;}
+.ticket-actions-print-row .btn{font-size:11px;padding:9px 6px;}
+.btn{
+  font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:0.4px;text-transform:uppercase;
+  font-size:12.5px;padding:11px 16px;border-radius:6px;border:none;cursor:pointer;flex:1;
+  transition:opacity .15s;
+}
+.btn:hover{opacity:.88;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-primary{background:var(--ink);color:var(--paper);}
+.btn-send{background:var(--amber-dark);color:#fff;}
+.btn-close{background:var(--red);color:#fff;}
+.btn-cancelar{background:transparent;color:var(--red-dark);border:1px solid var(--red-dark);}
+.btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--paper-dim);flex:0 0 auto;}
+
+.abrir-mesa-form{padding:22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);}
+.abrir-mesa-form input{
+  width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--paper-dim);
+  font-family:'Inter',sans-serif;font-size:14px;margin:8px 0 16px;background:#fff;
+}
+.abrir-mesa-form label{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.5px;font-family:'Oswald',sans-serif;font-weight:600;}
+
+/* ---------- CARDAPIO ---------- */
+.cardapio-add{
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:16px;
+  display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end;
+}
+.field-mini{display:flex;flex-direction:column;gap:4px;}
+.field-mini label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-dim);font-family:'Oswald',sans-serif;}
+.field-mini input,.field-mini select{
+  background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+  padding:8px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;
+}
+.cat-group{margin-bottom:22px;}
+.cat-group h3{
+  font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.6px;font-size:14px;
+  color:var(--text);border-bottom:1px solid var(--line-soft);padding-bottom:8px;margin-bottom:10px;
+}
+.cardapio-item{
+  display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line-soft);
+  border-radius:8px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap;
+}
+.cardapio-item .nome{flex:1;min-width:140px;font-size:14px;font-weight:500;}
+.cardapio-item input[type=number]{
+  width:88px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+  padding:6px 8px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+}
+.toggle-disp{
+  font-size:11px;padding:4px 9px;border-radius:12px;cursor:pointer;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.3px;border:none;
+}
+.toggle-on{background:rgba(107,132,82,.18);color:#3F5730;}
+.toggle-off{background:rgba(193,67,46,.16);color:#8F2F1F;}
+.toggle-cozinha{background:rgba(217,164,65,.20);color:#8A6320;}
+.toggle-bar{background:rgba(74,64,168,.16);color:#4A40A8;}
+.mini-del{background:none;border:none;color:#A6493C;cursor:pointer;font-size:16px;}
+
+/* ---------- COZINHA ---------- */
+.cozinha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.cozinha-card{background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:14px 16px;}
+.cozinha-card h4{
+  font-family:'Oswald',sans-serif;margin:0 0 10px;font-size:16px;text-transform:uppercase;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.cozinha-item{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px;
+}
+.cozinha-item:last-child{border-bottom:none;}
+.cozinha-item .qtd{font-family:'IBM Plex Mono',monospace;color:var(--text-dim);margin-right:6px;}
+.status-pill-btn{
+  font-size:10.5px;text-transform:uppercase;font-weight:700;padding:4px 9px;border-radius:5px;
+  border:none;cursor:pointer;letter-spacing:0.3px;white-space:nowrap;
+}
+.empty-msg{color:var(--text-dim);font-size:13px;padding:30px 0;text-align:center;font-style:italic;grid-column:1/-1;}
+
+/* ---------- HISTORICO ---------- */
+.hist-summary{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.hist-card{
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:14px 18px;min-width:140px;
+}
+.hist-card .lbl{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:0.5px;}
+.hist-card .val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;margin-top:4px;}
+.hist-row{
+  background:var(--panel);border:1px solid var(--line-soft);border-radius:8px;padding:12px 16px;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;
+}
+.hist-row .esq{display:flex;flex-direction:column;gap:2px;}
+.hist-row .mesa-tag{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);}
+.hist-row .data{font-size:11.5px;color:var(--text-dim);}
+.hist-row .valor{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;}
+.pag-tag{font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:5px;background:var(--panel-2);color:var(--text-dim);}
+
+@media (max-width:520px){
+  .app{padding:14px 12px 50px;}
+  .brand h1{font-size:19px;}
+  .ticket-actions{flex-direction:column;}
+  .ticket-actions .btn{width:100%;}
+  .ticket-actions-print-row{flex-direction:row;}
+  .ticket-actions-print-row .btn{width:auto;}
+  .overlay{padding:0;align-items:stretch;overflow:hidden;}
+  .ticket{max-width:100%;border-radius:0;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;}
+  .menu-list{max-height:150px;}
+}
+
+.brand-logo{width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0;}
+.btn-print{background:transparent;color:var(--ink);border:1px solid var(--ink-soft);flex:0 0 auto;}
+
+#printArea{display:none;}
+@media print{
+  html, body{height:auto !important;margin:0;padding:0;}
+  #appContent, #loginScreen, .bg-watermark, .toast-erro{display:none !important;}
+  #overlay{position:static !important;background:none !important;padding:0 !important;display:block !important;}
+  .ticket{display:none !important;}
+  #printArea{
+    display:block !important;position:static;
+    font-family:'IBM Plex Mono',monospace;color:#000;padding:0;
+    width:72mm;
+  }
+  #printArea.w58{width:48mm;}
+  .print-logo{width:40px;display:block;margin:0 auto 4px;}
+  .print-title{text-align:center;font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;margin:0;}
+  #printArea.w58 .print-title{font-size:12.5px;}
+  .print-sub{text-align:center;font-size:9.5px;margin:2px 0 6px;}
+  .print-line{border-top:1px dashed #000;margin:5px 0;}
+  .print-row{display:flex;justify-content:space-between;font-size:10.5px;padding:1.5px 0;gap:6px;}
+  #printArea.w58 .print-row{font-size:9px;}
+  .print-item-name{flex:1;}
+  .print-obs{font-size:9px;font-style:italic;padding-left:8px;}
+  .print-total{font-size:12.5px;font-weight:700;}
+  .print-foot{text-align:center;font-size:9.5px;margin-top:8px;}
+}
+</style>
+<style id="pagePrintStyle">@page{size:80mm auto;margin:2mm;}</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+<div class="bg-watermark" id="bgWatermark"></div>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <img class="login-logo" id="loginLogoImg" alt="Fazenda Paraíso">
+    <h2>Fazenda Paraíso</h2>
+    <p class="login-sub">Sistema de comanda — acesso restrito</p>
+    <div id="loginErro" class="login-erro" style="display:none;"></div>
+    <label>E-mail</label>
+    <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="username">
+    <label>Senha</label>
+    <div class="senha-wrap">
+      <input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password">
+      <button type="button" class="senha-toggle" id="senhaToggleBtn" onclick="toggleMostrarSenha()" aria-label="Mostrar senha">
+        <svg id="senhaIconeOlho" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:6px;" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<div class="app" id="appContent" style="display:none;">
+
+  <div class="topbar">
+    <div class="brand">
+      <img class="brand-logo" id="brandLogoImg" alt="Logo Fazenda Paraíso">
+      <div>
+        <h1>Fazenda Paraíso</h1>
+        <p id="dataAtual">—</p>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="mesas">Salão</button>
+      <button class="tab-btn" data-tab="cozinha">Cozinha <span class="tab-badge" id="badgeCozinha">0</span></button>
+      <button class="tab-btn" data-tab="bar">Bar <span class="tab-badge" id="badgeBar">0</span></button>
+      <button class="tab-btn" data-tab="cardapio">Cardápio</button>
+      <button class="tab-btn" data-tab="historico">Caixa</button>
+    </div>
+    <div class="user-badge" id="userBadge" onclick="toggleUserMenu(event)">
+      <div class="user-avatar" id="userAvatarLetra">?</div>
+      <span class="user-badge-email" id="userBadgeEmail">—</span>
+      <div class="user-menu" id="userMenu">
+        <div class="user-menu-email" id="userMenuEmail">—</div>
+        <div class="user-menu-role" id="userMenuRole">—</div>
+        <button class="user-menu-sair" onclick="fazerLogout()">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin:-10px 0 18px;font-size:12px;color:var(--text-dim);">
+    <span>Bobina da impressora:</span>
+    <button class="chip" id="chip58" onclick="setLarguraImpressao(58)">58mm</button>
+    <button class="chip" id="chip80" onclick="setLarguraImpressao(80)">80mm</button>
+  </div>
+
+  <div class="view active" id="view-mesas">
+    <div class="area-tabs" id="areaTabs">
+      <button class="area-tab active" data-area="mesa" onclick="mudarAreaFiltro('mesa')">Mesas</button>
+      <button class="area-tab" data-area="deck" onclick="mudarAreaFiltro('deck')">Decks</button>
+      <button class="area-tab" data-area="quiosque" onclick="mudarAreaFiltro('quiosque')">Quiosques</button>
+      <button class="area-tab" data-area="chale" onclick="mudarAreaFiltro('chale')">Chalés</button>
+      <button class="area-tab" data-area="individual" onclick="mudarAreaFiltro('individual')">Comanda individual</button>
+    </div>
+    <button class="btn btn-primary" id="btnNovaIndividual" style="display:none;max-width:260px;margin-bottom:16px;" onclick="abrirComandaIndividual()">+ Nova comanda individual</button>
+    <div class="mesas-grid" id="mesasGrid"></div>
+  </div>
+
+  <div class="view" id="view-cozinha">
+    <div class="cozinha-grid" id="cozinhaGrid"></div>
+  </div>
+
+  <div class="view" id="view-bar">
+    <div class="cozinha-grid" id="barGrid"></div>
+  </div>
+
+  <div class="view" id="view-cardapio">
+    <div id="cardapioSomenteLeituraAviso" style="display:none;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--text-dim);margin-bottom:16px;">
+      Modo de visualização — edição de preços e itens é restrita ao usuário administrador.
+    </div>
+    <div class="cardapio-add" id="cardapioAddForm">
+      <div class="field-mini">
+        <label>Categoria</label>
+        <select id="novoItemCat"></select>
+      </div>
+      <div class="field-mini" style="flex:1;min-width:160px;">
+        <label>Nome do item</label>
+        <input type="text" id="novoItemNome" placeholder="Ex: Picanha na chapa">
+      </div>
+      <div class="field-mini">
+        <label>Preço (R$)</label>
+        <input type="number" id="novoItemPreco" step="0.5" min="0" style="width:90px;">
+      </div>
+      <div class="field-mini">
+        <label>Setor</label>
+        <select id="novoItemSetor">
+          <option value="cozinha">Cozinha</option>
+          <option value="bar">Bar</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="flex:0 0 auto;" onclick="adicionarItemCardapio()">Adicionar</button>
+    </div>
+    <div id="cardapioList"></div>
+  </div>
+
+  <div class="view" id="view-historico">
+    <div class="filtro-caixa">
+      <div class="field-mini">
+        <label>De</label>
+        <input type="date" id="filtroDataIni" onchange="mudarFiltroPeriodo()">
+      </div>
+      <div class="field-mini">
+        <label>Até</label>
+        <input type="date" id="filtroDataFim" onchange="mudarFiltroPeriodo()">
+      </div>
+      <div class="field-mini">
+        <label>Pagamento</label>
+        <select id="filtroForma" onchange="mudarFiltroPeriodo()">
+          <option value="todas">Todas</option>
+          <option value="Dinheiro">Dinheiro</option>
+          <option value="Cartão">Cartão</option>
+          <option value="Pix">Pix</option>
+        </select>
+      </div>
+      <button class="chip" id="chipTodosDias" onclick="verTodosDias()" style="align-self:flex-end;">Ver tudo</button>
+      <button class="chip" id="btnResetarTestes" onclick="resetarDadosDeTeste()" style="align-self:flex-end;display:none;background:var(--red-dark);border-color:var(--red-dark);">Zerar dados de teste</button>
+    </div>
+
+    <div class="hist-summary">
+      <div class="hist-card"><div class="lbl" id="lblQtdPeriodo">Comandas fechadas hoje</div><div class="val" id="histQtdHoje">0</div></div>
+      <div class="hist-card"><div class="lbl" id="lblTotalPeriodo">Faturamento hoje</div><div class="val" id="histTotalHoje">R$ 0,00</div></div>
+    </div>
+
+    <div class="ticket-section-title" style="color:var(--text-dim);">Fluxo de vendas</div>
+    <div class="grafico-box" id="graficoVendas"></div>
+
+    <div class="ticket-section-title" style="color:var(--text-dim);" id="lblComissaoPeriodo">Comissão por garçom (hoje)</div>
+    <div class="hist-summary" id="comissaoGarcons" style="margin-bottom:20px;"></div>
+    <div id="historicoList"></div>
+
+    <div class="ticket-section-title" style="color:var(--text-dim);margin-top:26px;" id="lblCancelamentosPeriodo">Cancelamentos (hoje)</div>
+    <div id="cancelamentosList"></div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="ticket" id="ticketBox"></div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDpBVuDegZNuZeLLaMYEFe65P7S7YKzqfM",
+  authDomain: "fazenda-paraiso-comanda.firebaseapp.com",
+  projectId: "fazenda-paraiso-comanda",
+  storageBucket: "fazenda-paraiso-comanda.firebasestorage.app",
+  messagingSenderId: "205892171738",
+  appId: "1:205892171738:web:99fa952e2950bd05eb72e3"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+try{
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{ /* modo offline não crítico, segue sem ele */ });
+}catch(e){}
+const docCardapio = db.collection('estado').doc('cardapio');
+const docMesas = db.collection('estado').doc('mesas');
+const docHistorico = db.collection('estado').doc('historico');
+const docCancelamentos = db.collection('estado').doc('cancelamentos');
+
+/* ---------------- LOGIN ---------------- */
+const ADMIN_EMAILS = ['adm@fazendaparaiso.com', 'admin@fazendaparaiso.com'];
+let sistemaJaCarregado = false;
+let isAdmin = false;
+let usuarioLogadoEmail = '';
+auth.onAuthStateChanged(user=>{
+  if(user){
+    isAdmin = ADMIN_EMAILS.includes((user.email||'').toLowerCase());
+    usuarioLogadoEmail = user.email || '';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    document.getElementById('userBadgeEmail').textContent = usuarioLogadoEmail;
+    document.getElementById('userMenuEmail').textContent = usuarioLogadoEmail;
+    document.getElementById('userMenuRole').textContent = isAdmin ? 'Administrador' : 'Operador';
+    document.getElementById('userAvatarLetra').textContent = usuarioLogadoEmail.charAt(0).toUpperCase();
+    if(!sistemaJaCarregado){
+      sistemaJaCarregado = true;
+      carregarEstado();
+    } else {
+      renderCardapio();
+    }
+  } else {
+    isAdmin = false;
+    usuarioLogadoEmail = '';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appContent').style.display = 'none';
+    document.getElementById('userMenu').classList.remove('open');
+  }
+});
+
+function toggleUserMenu(ev){
+  ev.stopPropagation();
+  document.getElementById('userMenu').classList.toggle('open');
+}
+document.addEventListener('click', ()=>{
+  document.getElementById('userMenu').classList.remove('open');
+});
+
+const ICONE_OLHO_ABERTO = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle>';
+const ICONE_OLHO_FECHADO = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-3.22 4.31M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
+function toggleMostrarSenha(){
+  const campo = document.getElementById('loginSenha');
+  const btn = document.getElementById('senhaToggleBtn');
+  const icone = document.getElementById('senhaIconeOlho');
+  if(campo.type === 'password'){
+    campo.type = 'text';
+    icone.innerHTML = ICONE_OLHO_FECHADO;
+    btn.setAttribute('aria-label','Ocultar senha');
+  } else {
+    campo.type = 'password';
+    icone.innerHTML = ICONE_OLHO_ABERTO;
+    btn.setAttribute('aria-label','Mostrar senha');
+  }
+}
+
+function fazerLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  const erroBox = document.getElementById('loginErro');
+  erroBox.style.display = 'none';
+  if(!email || !senha){
+    erroBox.textContent = 'Preencha e-mail e senha.';
+    erroBox.style.display = 'block';
+    return;
+  }
+  auth.signInWithEmailAndPassword(email, senha).catch(err=>{
+    let msg = 'Não foi possível entrar. Confira e-mail e senha.';
+    if(err.code === 'auth/invalid-email') msg = 'E-mail inválido.';
+    if(err.code === 'auth/too-many-requests') msg = 'Muitas tentativas. Aguarde um momento e tente de novo.';
+    erroBox.textContent = msg;
+    erroBox.style.display = 'block';
+  });
+}
+document.getElementById('loginSenha').addEventListener('keydown', e=>{ if(e.key==='Enter') fazerLogin(); });
+document.getElementById('loginEmail').addEventListener('keydown', e=>{ if(e.key==='Enter') fazerLogin(); });
+
+function fazerLogout(){
+  auth.signOut();
+}
+
+const CATEGORIAS = ['Porções','Guarnições','Cervejas'];
+const FORMAS_PAGAMENTO = ['Dinheiro','Cartão','Pix'];
+const LOGO_BASE64 = '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';
+
+let cardapio = [];
+let mesas = [];
+let historico = [];
+let cancelamentos = [];
+let mesaAberta = null;
+let categoriaAtiva = CATEGORIAS[0];
+
+let larguraImpressao = 80;
+function setLarguraImpressao(mm){
+  larguraImpressao = mm;
+  document.getElementById('chip58').classList.toggle('active', mm===58);
+  document.getElementById('chip80').classList.toggle('active', mm===80);
+  document.getElementById('pagePrintStyle').textContent = `@page{size:${mm}mm auto;margin:2mm;}`;
+  try{ localStorage.setItem('fp-largura-impressao', String(mm)); }catch(e){}
+}
+function carregarConfigImpressora(){
+  try{
+    const salvo = localStorage.getItem('fp-largura-impressao');
+    if(salvo){ setLarguraImpressao(parseInt(salvo,10)===58?58:80); return; }
+  }catch(e){}
+  setLarguraImpressao(80);
+}
+carregarConfigImpressora();
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function fmtMoeda(v){ return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtHora(iso){ const d = new Date(iso); return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function fmtDataHora(iso){ const d = new Date(iso); return d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function mesmodia(iso){ const d=new Date(iso), h=new Date(); return d.toDateString()===h.toDateString(); }
+
+document.getElementById('dataAtual').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+document.getElementById('brandLogoImg').src = 'data:image/jpeg;base64,' + LOGO_BASE64;
+document.getElementById('loginLogoImg').src = 'data:image/jpeg;base64,' + LOGO_BASE64;
+document.getElementById('bgWatermark').style.backgroundImage = "url(data:image/jpeg;base64," + LOGO_BASE64 + ")";
+
+// Ícone do site (aba do navegador + atalho/tela de início)
+(function aplicarIconeDoSite(){
+  const href = 'data:image/jpeg;base64,' + LOGO_BASE64;
+  ['icon','shortcut icon','apple-touch-icon'].forEach(rel=>{
+    const link = document.createElement('link');
+    link.rel = rel;
+    link.href = href;
+    document.head.appendChild(link);
+  });
+})();
+
+const seedCardapio = [
+  {id:uid(),categoria:'Porções',nome:'Contra filé 500grs',preco:60,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Contra filé com fritas',preco:80,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Lombo 500grs',preco:45,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Lombo com fritas',preco:65,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Filé de frango 500grs',preco:45,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Filé de frango com fritas',preco:65,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Fritas 500grs',preco:28,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Fritas com queijo',preco:30,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Fritas com queijo e bacon',preco:35,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Pelotinha com mandioca 15 unid.',preco:42,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Filé de tilápia 500 grs.',preco:52,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Filé de tilápia com fritas',preco:72,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Picanha 500 grs.',preco:90,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Picanha com fritas',preco:110,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Kibe 15 unidades',preco:0,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Coxinha de frango frita 500 grs.',preco:0,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Parmegiana de tilápia',preco:120,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Bolinho de mandioca',preco:45,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Porções',nome:'Fígado c/ jiló',preco:45,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Guarnições',nome:'Arroz branco',preco:15,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Guarnições',nome:'Feijão tropeiro',preco:20,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Guarnições',nome:'Salada tropical',preco:15,disponivel:true,setor:'cozinha'},
+  {id:uid(),categoria:'Cervejas',nome:'Heineken long neck',preco:12,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Heineken garrafa',preco:0,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Corona long neck',preco:12,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Original garrafa',preco:0,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Budweiser long neck',preco:10,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Budweiser garrafa',preco:0,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Brahma lata',preco:6,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Brahma garrafa',preco:0,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Skol lata',preco:6,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Skol garrafa',preco:0,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Skol beats',preco:0,disponivel:true,setor:'bar'},
+  {id:uid(),categoria:'Cervejas',nome:'Stella gold',preco:12,disponivel:true,setor:'bar'},
+];
+
+function labelTipo(tipo){
+  return {mesa:'Mesa', deck:'Deck', quiosque:'Quiosque', individual:'Comanda', chale:'Chalé'}[tipo] || 'Mesa';
+}
+function rotuloUnidade(u){
+  return labelTipo(u.tipo) + ' ' + String(u.numero).padStart(2,'0');
+}
+
+function seedMesas(){
+  const arr = [];
+  for(let i=1;i<=16;i++) arr.push({id:uid(),tipo:'mesa',numero:i,status:'livre',comanda:null});
+  for(let i=1;i<=10;i++) arr.push({id:uid(),tipo:'deck',numero:i,status:'livre',comanda:null});
+  for(let i=1;i<=3;i++) arr.push({id:uid(),tipo:'quiosque',numero:i,status:'livre',comanda:null});
+  for(let i=1;i<=10;i++) arr.push({id:uid(),tipo:'chale',numero:i,status:'livre',comanda:null});
+  return arr;
+}
+
+async function carregarEstado(){
+  try{
+    const snapCardapio = await docCardapio.get();
+    cardapio = snapCardapio.exists ? JSON.parse(snapCardapio.data().json) : seedCardapio;
+    if(!snapCardapio.exists) await salvarCardapio();
+  }catch(e){ cardapio = seedCardapio; }
+
+  let precisaMigrarCardapio = false;
+  cardapio.forEach(it=>{
+    if(!it.setor){ it.setor = it.categoria==='Cervejas' ? 'bar' : 'cozinha'; precisaMigrarCardapio = true; }
+  });
+  if(precisaMigrarCardapio) await salvarCardapio();
+
+  try{
+    const snapMesas = await docMesas.get();
+    mesas = snapMesas.exists ? JSON.parse(snapMesas.data().json) : seedMesas();
+    if(!snapMesas.exists) await salvarMesas();
+  }catch(e){ mesas = seedMesas(); }
+
+  let precisaMigrar = false;
+  mesas.forEach(m=>{ if(!m.tipo){ m.tipo = 'mesa'; precisaMigrar = true; } });
+  if(!mesas.some(m=>m.tipo==='deck')){
+    for(let i=1;i<=10;i++) mesas.push({id:uid(),tipo:'deck',numero:i,status:'livre',comanda:null});
+    precisaMigrar = true;
+  }
+  if(!mesas.some(m=>m.tipo==='quiosque')){
+    for(let i=1;i<=3;i++) mesas.push({id:uid(),tipo:'quiosque',numero:i,status:'livre',comanda:null});
+    precisaMigrar = true;
+  }
+  const chalesExistentes = mesas.filter(m=>m.tipo==='chale').length;
+  if(chalesExistentes < 10){
+    for(let i=chalesExistentes+1;i<=10;i++) mesas.push({id:uid(),tipo:'chale',numero:i,status:'livre',comanda:null});
+    precisaMigrar = true;
+  }
+  if(precisaMigrar) await salvarMesas();
+
+  try{
+    const snapHistorico = await docHistorico.get();
+    historico = snapHistorico.exists ? JSON.parse(snapHistorico.data().json) : [];
+  }catch(e){ historico = []; }
+
+  try{
+    const snapCancel = await docCancelamentos.get();
+    cancelamentos = snapCancel.exists ? JSON.parse(snapCancel.data().json) : [];
+  }catch(e){ cancelamentos = []; }
+
+  renderTudo();
+  ativarSincroniaTempoReal();
+}
+
+function mostrarErroSalvamento(msg){
+  let toast = document.getElementById('toastErro');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'toastErro';
+    toast.className = 'toast-erro';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>toast.classList.remove('show'), 5000);
+}
+
+async function salvarCardapio(){
+  try{ await docCardapio.set({json: JSON.stringify(cardapio)}); }
+  catch(e){
+    console.error('erro ao salvar cardápio', e);
+    mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para alterar o cardápio (só o admin pode).' : 'Não foi possível salvar o cardápio. Verifique a conexão.');
+  }
+}
+async function salvarMesas(){
+  try{ await docMesas.set({json: JSON.stringify(mesas)}); }
+  catch(e){
+    console.error('erro ao salvar mesas', e);
+    mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar. Verifique a conexão.');
+  }
+}
+async function salvarHistorico(){
+  if(historico.length > 400) historico = historico.slice(0,400);
+  try{ await docHistorico.set({json: JSON.stringify(historico)}); }
+  catch(e){
+    console.error('erro ao salvar histórico', e);
+    mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar o histórico. Verifique a conexão.');
+  }
+}
+async function salvarCancelamentos(){
+  if(cancelamentos.length > 300) cancelamentos = cancelamentos.slice(0,300);
+  try{ await docCancelamentos.set({json: JSON.stringify(cancelamentos)}); }
+  catch(e){
+    console.error('erro ao salvar cancelamentos', e);
+    mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar o cancelamento. Verifique a conexão.');
+  }
+}
+
+/* ---------------- SINCRONIA EM TEMPO REAL (Firestore) ---------------- */
+function ativarSincroniaTempoReal(){
+  docCardapio.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    cardapio = JSON.parse(snap.data().json);
+    const overlayAberto = document.getElementById('overlay').classList.contains('open');
+    if(!overlayAberto) renderCardapio();
+    renderMesas();
+  });
+  docMesas.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    mesas = JSON.parse(snap.data().json);
+    renderMesas();
+    renderCozinha();
+  });
+  docHistorico.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    historico = JSON.parse(snap.data().json);
+    renderHistorico();
+  });
+  docCancelamentos.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    cancelamentos = JSON.parse(snap.data().json);
+    renderHistorico();
+  });
+}
+
+function renderTudo(){
+  renderMesas();
+  renderCozinha();
+  renderCardapio();
+  renderHistorico();
+  if(mesaAberta) renderTicket();
+}
+
+/* ---------------- TABS ---------------- */
+document.querySelectorAll('.tab-btn[data-tab]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+let areaFiltroAtiva = 'mesa';
+
+function mudarAreaFiltro(tipo){
+  areaFiltroAtiva = tipo;
+  document.querySelectorAll('.area-tab').forEach(b=>b.classList.toggle('active', b.dataset.area===tipo));
+  document.getElementById('btnNovaIndividual').style.display = tipo==='individual' ? 'block' : 'none';
+  renderMesas();
+}
+
+/* ---------------- MESAS / DECKS / QUIOSQUES / INDIVIDUAL ---------------- */
+function renderMesas(){
+  const grid = document.getElementById('mesasGrid');
+  grid.innerHTML = '';
+  const lista = mesas.filter(m=>m.tipo===areaFiltroAtiva).sort((a,b)=>a.numero-b.numero);
+
+  if(areaFiltroAtiva==='individual' && lista.length===0){
+    grid.innerHTML = '<div class="empty-msg">Nenhuma comanda individual aberta. Clique em "+ Nova comanda individual" acima.</div>';
+    return;
+  }
+
+  lista.forEach(mesa=>{
+    const card = document.createElement('div');
+    card.className = 'mesa-card';
+    let infoLinha = 'Disponível';
+    if(mesa.status !== 'livre' && mesa.comanda){
+      const totalItens = mesa.comanda.itens.reduce((s,i)=>s+i.qtd,0);
+      const nomePrincipal = mesa.comanda.cliente || mesa.comanda.hospede;
+      infoLinha = (nomePrincipal ? escapeHtml(nomePrincipal)+' · ' : '') + totalItens + ' item(ns) · aberta ' + fmtHora(mesa.comanda.abertaEm);
+    }
+    card.innerHTML = `
+      <div>
+        <div class="mesa-num">${String(mesa.numero).padStart(2,'0')}</div>
+        <div class="mesa-status status-${mesa.status}">${mesa.status === 'livre' ? 'Livre' : mesa.status === 'ocupada' ? 'Ocupada' : 'Aguard. pagto'}</div>
+      </div>
+      <div class="mesa-info">${infoLinha}</div>
+    `;
+    card.addEventListener('click', ()=>abrirMesa(mesa.id));
+    grid.appendChild(card);
+  });
+}
+
+async function abrirComandaIndividual(){
+  const numerosExistentes = mesas.filter(m=>m.tipo==='individual').map(m=>m.numero);
+  const proximo = numerosExistentes.length ? Math.max(...numerosExistentes)+1 : 1;
+  const nova = {id:uid(), tipo:'individual', numero:proximo, status:'livre', comanda:null};
+  mesas.push(nova);
+  await salvarMesas();
+  renderMesas();
+  abrirMesa(nova.id);
+}
+
+function abrirMesa(mesaId){
+  mesaAberta = mesaId;
+  const mesa = mesas.find(m=>m.id===mesaId);
+  document.getElementById('overlay').classList.add('open');
+  if(mesa.status === 'livre'){
+    renderFormAbrirMesa(mesa);
+  } else {
+    categoriaAtiva = CATEGORIAS[0];
+    renderTicket();
+  }
+}
+
+function fecharOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  mesaAberta = null;
+}
+document.getElementById('overlay').addEventListener('click', e=>{
+  if(e.target.id === 'overlay') fecharOverlay();
+});
+
+function renderFormAbrirMesa(mesa){
+  const box = document.getElementById('ticketBox');
+  const campoCliente = mesa.tipo === 'individual' ? `
+      <label>Nome do cliente</label>
+      <input type="text" id="clienteInput" placeholder="Ex: Maria Silva">
+  ` : '';
+  const camposChale = mesa.tipo === 'chale' ? `
+      <label>Hóspede (quem está hospedado)</label>
+      <input type="text" id="hospedeInput" placeholder="Ex: Maria Silva">
+      <label>Visitante(s)</label>
+      <input type="text" id="visitanteInput" placeholder="Ex: João (visita)">
+      <label>Observação</label>
+      <textarea id="obsChaleInput" rows="2" placeholder="Ex: 2 diárias, check-out domingo" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--paper-dim);font-family:'Inter',sans-serif;font-size:14px;margin:8px 0 16px;background:#fff;resize:vertical;"></textarea>
+  ` : '';
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>${rotuloUnidade(mesa)}</h2>
+        <div class="meta">Abrir nova comanda</div>
+      </div>
+      <button class="ticket-close" onclick="fecharOverlay()">×</button>
+    </div>
+    <div class="abrir-mesa-form">
+      ${campoCliente}
+      ${camposChale}
+      <label>Nome do garçom (opcional)</label>
+      <input type="text" id="garcomInput" placeholder="Ex: João">
+      <button class="btn btn-primary" style="width:100%;" onclick="confirmarAbrirMesa('${mesa.id}')">Abrir ${mesa.tipo==='individual'?'comanda':mesa.tipo==='chale'?'chalé':'mesa'}</button>
+    </div>
+  `;
+}
+
+async function confirmarAbrirMesa(mesaId){
+  const garcom = document.getElementById('garcomInput').value.trim() || 'Não informado';
+  const mesa = mesas.find(m=>m.id===mesaId);
+  const clienteInput = document.getElementById('clienteInput');
+  const cliente = clienteInput ? clienteInput.value.trim() : '';
+  const hospedeInput = document.getElementById('hospedeInput');
+  const visitanteInput = document.getElementById('visitanteInput');
+  const obsChaleInput = document.getElementById('obsChaleInput');
+  mesa.status = 'ocupada';
+  mesa.comanda = {
+    garcom,
+    cliente: cliente || null,
+    hospede: hospedeInput ? (hospedeInput.value.trim() || null) : null,
+    visitante: visitanteInput ? (visitanteInput.value.trim() || null) : null,
+    obsChale: obsChaleInput ? (obsChaleInput.value.trim() || null) : null,
+    abertaEm: new Date().toISOString(),
+    itens: []
+  };
+  await salvarMesas();
+  renderMesas();
+  categoriaAtiva = CATEGORIAS[0];
+  renderTicket();
+}
+
+/* ---------------- TICKET / COMANDA ---------------- */
+function renderTicket(){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  if(!mesa || !mesa.comanda) return;
+  const box = document.getElementById('ticketBox');
+
+  const itensDisponiveis = cardapio.filter(c=>c.categoria===categoriaAtiva);
+  const menuRowsHtml = itensDisponiveis.map(it=>`
+    <div class="menu-row ${!it.disponivel?'indisponivel':''}" ${it.disponivel?`onclick="adicionarItemComanda('${it.id}')"`:''}>
+      <div>
+        <div class="menu-row-name">${escapeHtml(it.nome)}</div>
+        <div class="menu-row-price">${fmtMoeda(it.preco)}</div>
+      </div>
+      ${it.disponivel ? '<button class="add-btn" tabindex="-1">+</button>' : '<span style="font-size:11px;color:var(--ink-soft)">indisp.</span>'}
+    </div>
+  `).join('') || '<div style="padding:14px;font-size:13px;color:var(--ink-soft)">Nenhum item nesta categoria.</div>';
+
+  const chipsHtml = CATEGORIAS.map(c=>`<div class="chip ${c===categoriaAtiva?'active':''}" onclick="mudarCategoria('${c}')">${c}</div>`).join('');
+
+  const itens = mesa.comanda.itens;
+  const itensHtml = itens.length ? itens.map(it=>`
+    <div class="item-line">
+      <div class="item-qty-ctrl">
+        <button class="qty-btn" onclick="alterarQtd('${it.uid}',-1)">−</button>
+        ${it.qtd}
+        <button class="qty-btn" onclick="alterarQtd('${it.uid}',1)">+</button>
+      </div>
+      <div class="item-mid">
+        <div class="item-name">${escapeHtml(it.nome)}</div>
+        <input class="item-obs-input" placeholder="observação (ex: sem cebola)" value="${escapeHtml(it.obs||'')}" onchange="alterarObs('${it.uid}', this.value)">
+      </div>
+      <span class="item-status st-${it.status}">${labelStatus(it.status)}</span>
+      <div class="item-price">${fmtMoeda(it.preco*it.qtd)}</div>
+      <button class="item-remove" onclick="removerItem('${it.uid}')">×</button>
+    </div>
+  `).join('') : '<div style="padding:10px 0;color:var(--ink-soft);font-size:13px;">Nenhum item adicionado ainda.</div>';
+
+  const subtotal = itens.reduce((s,i)=>s+i.preco*i.qtd,0);
+  const taxaChecked = mesa.comanda.taxa !== false;
+  const taxaValor = taxaChecked ? subtotal*0.03 : 0;
+  const total = subtotal + taxaValor;
+
+  const temPendente = itens.some(i=>i.status==='pendente');
+  const temItensCozinha = itens.some(i=>(i.setor||'cozinha')==='cozinha');
+  const temItensBar = itens.some(i=>(i.setor||'cozinha')==='bar');
+
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>${rotuloUnidade(mesa)}</h2>
+        <div class="meta">${mesa.comanda.cliente ? `Cliente: ${escapeHtml(mesa.comanda.cliente)} · ` : ''}${mesa.comanda.hospede ? `Hóspede: ${escapeHtml(mesa.comanda.hospede)}${mesa.comanda.visitante ? ' · Visitante: '+escapeHtml(mesa.comanda.visitante) : ''} · ` : ''}Garçom: ${escapeHtml(mesa.comanda.garcom)} · aberta ${fmtHora(mesa.comanda.abertaEm)}</div>
+      </div>
+      <button class="ticket-close" onclick="fecharOverlay()">×</button>
+    </div>
+    <div class="ticket-body">
+      <div class="ticket-section-title">Adicionar item</div>
+      <div class="cat-chips">${chipsHtml}</div>
+      <div class="menu-list">${menuRowsHtml}</div>
+
+      <div class="itens-comanda">
+        <div class="ticket-section-title" style="margin-top:0;">Itens da comanda</div>
+        ${itensHtml}
+      </div>
+    </div>
+    <div class="ticket-totais">
+      <div class="taxa-toggle">
+        <input type="checkbox" id="taxaCheck" ${taxaChecked?'checked':''} onchange="toggleTaxa(this.checked)">
+        <label for="taxaCheck">Incluir 3% do garçom</label>
+      </div>
+      <div class="total-row"><span>Subtotal</span><span>${fmtMoeda(subtotal)}</span></div>
+      <div class="total-row"><span>3% do garçom</span><span>${fmtMoeda(taxaValor)}</span></div>
+      <div class="total-row grand"><span>Total</span><span>${fmtMoeda(total)}</span></div>
+    </div>
+    <div class="ticket-actions">
+      <div class="ticket-actions-print-row">
+        <button class="btn btn-print" ${itens.length===0?'disabled':''} onclick="imprimirConferencia('${mesa.id}')" title="Imprimir conferência">Conferência</button>
+        <button class="btn btn-print" ${!temItensCozinha?'disabled':''} onclick="imprimirSetor('${mesa.id}','cozinha')" title="Só os itens de comida">Cozinha</button>
+        <button class="btn btn-print" ${!temItensBar?'disabled':''} onclick="imprimirSetor('${mesa.id}','bar')" title="Só os itens de bebida">Bar</button>
+      </div>
+      <button class="btn btn-send" ${!temPendente?'disabled':''} onclick="enviarCozinha()">Enviar p/ cozinha</button>
+      <button class="btn btn-close" ${itens.length===0?'disabled':''} onclick="abrirFechamento()">Fechar conta</button>
+      <button class="btn btn-ghost" onclick="fecharOverlay()">Voltar</button>
+      <button class="btn btn-cancelar" onclick="abrirCancelamento('${mesa.id}')">Cancelar comanda</button>
+    </div>
+  `;
+}
+
+function labelStatus(s){
+  return {pendente:'A enviar',enviado:'Na cozinha',pronto:'Pronto',entregue:'Entregue'}[s] || s;
+}
+function escapeHtml(str){
+  const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+}
+
+function mudarCategoria(c){ categoriaAtiva = c; renderTicket(); }
+
+async function adicionarItemComanda(itemId){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  const item = cardapio.find(c=>c.id===itemId);
+  if(!mesa || !item) return;
+  const existente = mesa.comanda.itens.find(i=>i.itemId===itemId && i.status==='pendente' && !i.obs);
+  if(existente){
+    existente.qtd += 1;
+  } else {
+    mesa.comanda.itens.push({uid:uid(),itemId:item.id,nome:item.nome,preco:item.preco,qtd:1,obs:'',status:'pendente',setor:item.setor||'cozinha'});
+  }
+  await salvarMesas();
+  renderTicket();
+}
+
+async function alterarQtd(itemUid, delta){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  const it = mesa.comanda.itens.find(i=>i.uid===itemUid);
+  if(!it) return;
+  it.qtd += delta;
+  if(it.qtd <= 0){
+    mesa.comanda.itens = mesa.comanda.itens.filter(i=>i.uid!==itemUid);
+  }
+  await salvarMesas();
+  renderTicket();
+}
+
+async function alterarObs(itemUid, valor){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  const it = mesa.comanda.itens.find(i=>i.uid===itemUid);
+  if(!it) return;
+  it.obs = valor;
+  await salvarMesas();
+}
+
+async function removerItem(itemUid){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  mesa.comanda.itens = mesa.comanda.itens.filter(i=>i.uid!==itemUid);
+  await salvarMesas();
+  renderTicket();
+}
+
+async function toggleTaxa(checked){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  mesa.comanda.taxa = checked;
+  await salvarMesas();
+  renderTicket();
+}
+
+async function enviarCozinha(){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  mesa.comanda.itens.forEach(it=>{ if(it.status==='pendente') it.status='enviado'; });
+  await salvarMesas();
+  renderTicket();
+  renderCozinha();
+  renderMesas();
+}
+
+function abrirFechamento(){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  const itens = mesa.comanda.itens;
+  const subtotal = itens.reduce((s,i)=>s+i.preco*i.qtd,0);
+  const taxaChecked = mesa.comanda.taxa !== false;
+  const taxaValor = taxaChecked ? subtotal*0.03 : 0;
+  const total = subtotal + taxaValor;
+  const box = document.getElementById('ticketBox');
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>Fechar ${rotuloUnidade(mesa).toLowerCase()}</h2>
+        <div class="meta">Total a pagar</div>
+      </div>
+      <button class="ticket-close" onclick="fecharOverlay()">×</button>
+    </div>
+    <div class="ticket-totais" style="border-top:none;">
+      <div class="total-row"><span>Subtotal</span><span>${fmtMoeda(subtotal)}</span></div>
+      <div class="total-row"><span>3% do garçom</span><span>${fmtMoeda(taxaValor)}</span></div>
+      <div class="total-row grand"><span>Total</span><span>${fmtMoeda(total)}</span></div>
+    </div>
+    <div class="ticket-body" style="padding-top:0;">
+      <div class="ticket-section-title">Forma de pagamento</div>
+      <div class="cat-chips" id="pagChips">
+        ${FORMAS_PAGAMENTO.map((f,i)=>`<div class="chip ${i===0?'active':''}" data-forma="${f}" onclick="selecionarForma('${f}')">${f}</div>`).join('')}
+      </div>
+    </div>
+    <div class="ticket-actions">
+      <button class="btn btn-ghost" onclick="renderTicket()">Voltar</button>
+      <button class="btn btn-print" onclick="imprimirRecibo('${mesa.id}')" title="Imprimir recibo">Imprimir</button>
+      <button class="btn btn-close" onclick="confirmarFechamento(${subtotal},${taxaValor},${total})">Confirmar pagamento</button>
+    </div>
+  `;
+}
+
+let formaSelecionada = FORMAS_PAGAMENTO[0];
+function selecionarForma(f){
+  formaSelecionada = f;
+  document.querySelectorAll('#pagChips .chip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.forma===f);
+  });
+}
+
+async function confirmarFechamento(subtotal, taxaValor, total){
+  const mesa = mesas.find(m=>m.id===mesaAberta);
+  historico.unshift({
+    id: uid(),
+    tipo: mesa.tipo,
+    mesaNumero: mesa.numero,
+    garcom: mesa.comanda.garcom,
+    itens: mesa.comanda.itens.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco})),
+    subtotal, taxaServico: taxaValor, total,
+    formaPagamento: formaSelecionada,
+    fechadaEm: new Date().toISOString()
+  });
+  if(mesa.tipo === 'individual'){
+    mesas = mesas.filter(m=>m.id!==mesa.id);
+  } else {
+    mesa.status = 'livre';
+    mesa.comanda = null;
+  }
+  await salvarHistorico();
+  await salvarMesas();
+  fecharOverlay();
+  renderMesas();
+  renderCozinha();
+  renderHistorico();
+}
+
+/* ---------------- CANCELAMENTO ---------------- */
+const MOTIVOS_CANCELAMENTO = [
+  'Cliente desistiu',
+  'Erro de lançamento',
+  'Item indisponível',
+  'Demora excessiva',
+  'Troca de mesa/local',
+  'Outro'
+];
+
+function abrirCancelamento(mesaId){
+  const mesa = mesas.find(m=>m.id===mesaId);
+  if(!mesa || !mesa.comanda) return;
+  const box = document.getElementById('ticketBox');
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>Cancelar ${rotuloUnidade(mesa).toLowerCase()}</h2>
+        <div class="meta">Essa ação não gera venda e libera o local</div>
+      </div>
+      <button class="ticket-close" onclick="renderTicket()">×</button>
+    </div>
+    <div class="abrir-mesa-form">
+      <label>Motivo do cancelamento</label>
+      <div class="cat-chips" id="motivoChips">
+        ${MOTIVOS_CANCELAMENTO.map((m,i)=>`<div class="chip ${i===0?'active':''}" data-motivo="${m}" onclick="selecionarMotivoCancelamento('${m}')">${m}</div>`).join('')}
+      </div>
+      <label>Detalhe (opcional)</label>
+      <input type="text" id="motivoDetalheInput" placeholder="Ex: cliente não voltou">
+      <button class="btn btn-close" style="width:100%;" onclick="confirmarCancelamento('${mesa.id}')">Confirmar cancelamento</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="renderTicket()">Voltar sem cancelar</button>
+    </div>
+  `;
+}
+
+let motivoSelecionado = MOTIVOS_CANCELAMENTO[0];
+function selecionarMotivoCancelamento(m){
+  motivoSelecionado = m;
+  document.querySelectorAll('#motivoChips .chip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.motivo===m);
+  });
+}
+
+async function confirmarCancelamento(mesaId){
+  const mesa = mesas.find(m=>m.id===mesaId);
+  if(!mesa || !mesa.comanda) return;
+  const detalhe = document.getElementById('motivoDetalheInput').value.trim();
+  const motivoCompleto = detalhe ? `${motivoSelecionado} — ${detalhe}` : motivoSelecionado;
+
+  cancelamentos.unshift({
+    id: uid(),
+    tipo: mesa.tipo,
+    mesaNumero: mesa.numero,
+    garcom: mesa.comanda.garcom,
+    itens: mesa.comanda.itens.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco})),
+    motivo: motivoCompleto,
+    canceladaEm: new Date().toISOString(),
+    canceladoPor: usuarioLogadoEmail
+  });
+
+  if(mesa.tipo === 'individual'){
+    mesas = mesas.filter(m=>m.id!==mesa.id);
+  } else {
+    mesa.status = 'livre';
+    mesa.comanda = null;
+  }
+
+  await salvarCancelamentos();
+  await salvarMesas();
+  fecharOverlay();
+  renderMesas();
+  renderCozinha();
+  renderHistorico();
+}
+
+/* ---------------- COZINHA ---------------- */
+function renderCozinha(){
+  renderPainelSetor('cozinha', 'cozinhaGrid', 'badgeCozinha');
+  renderPainelSetor('bar', 'barGrid', 'badgeBar');
+}
+
+function renderPainelSetor(setor, gridId, badgeId){
+  const grid = document.getElementById(gridId);
+  const mesasComPedido = mesas.filter(m=>m.comanda && m.comanda.itens.some(i=>(i.setor||'cozinha')===setor && (i.status==='enviado'||i.status==='pronto')));
+  let totalPendentes = 0;
+
+  if(mesasComPedido.length === 0){
+    grid.innerHTML = `<div class="empty-msg">Nenhum pedido de ${setor==='bar'?'bebida':'comida'} em preparo no momento.</div>`;
+  } else {
+    grid.innerHTML = mesasComPedido.map(mesa=>{
+      const itensSetor = mesa.comanda.itens.filter(i=>(i.setor||'cozinha')===setor && (i.status==='enviado'||i.status==='pronto'));
+      totalPendentes += itensSetor.filter(i=>i.status==='enviado').length;
+      const linhas = itensSetor.map(it=>`
+        <div class="cozinha-item">
+          <span><span class="qtd">${it.qtd}×</span>${escapeHtml(it.nome)}${it.obs?` <em style="color:var(--text-dim);font-size:12px;">(${escapeHtml(it.obs)})</em>`:''}</span>
+          ${it.status==='enviado'
+            ? `<button class="status-pill-btn st-enviado" style="background:var(--amber);color:#3A2A05;" onclick="avancarStatusItem('${mesa.id}','${it.uid}')">Marcar pronto</button>`
+            : `<button class="status-pill-btn" style="background:var(--green);color:#1E2A14;" onclick="avancarStatusItem('${mesa.id}','${it.uid}')">Entregar</button>`
+          }
+        </div>
+      `).join('');
+      return `
+        <div class="cozinha-card">
+          <h4>${rotuloUnidade(mesa)}${(mesa.comanda.cliente||mesa.comanda.hospede)?' · '+escapeHtml(mesa.comanda.cliente||mesa.comanda.hospede):''} <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);text-transform:none;">${fmtHora(mesa.comanda.abertaEm)}</span></h4>
+          ${linhas}
+        </div>
+      `;
+    }).join('');
+  }
+  document.getElementById(badgeId).textContent = totalPendentes;
+}
+
+async function avancarStatusItem(mesaId, itemUid){
+  const mesa = mesas.find(m=>m.id===mesaId);
+  const it = mesa.comanda.itens.find(i=>i.uid===itemUid);
+  if(!it) return;
+  if(it.status==='enviado') it.status='pronto';
+  else if(it.status==='pronto') it.status='entregue';
+  await salvarMesas();
+  renderCozinha();
+  if(mesaAberta===mesaId) renderTicket();
+}
+
+/* ---------------- CARDAPIO ---------------- */
+function renderCardapio(){
+  const selCat = document.getElementById('novoItemCat');
+  if(selCat.children.length===0){
+    selCat.innerHTML = CATEGORIAS.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+  document.getElementById('cardapioAddForm').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('cardapioSomenteLeituraAviso').style.display = isAdmin ? 'none' : 'block';
+
+  const list = document.getElementById('cardapioList');
+  list.innerHTML = CATEGORIAS.map(cat=>{
+    const itens = cardapio.filter(c=>c.categoria===cat);
+    const rows = itens.map(it=> isAdmin ? `
+      <div class="cardapio-item">
+        <span class="nome">${escapeHtml(it.nome)}</span>
+        <input type="number" step="0.5" min="0" value="${it.preco}" onchange="alterarPreco('${it.id}', this.value)">
+        <button class="toggle-disp ${it.setor==='bar'?'toggle-bar':'toggle-cozinha'}" onclick="toggleSetor('${it.id}')" title="Clique para trocar">${it.setor==='bar'?'Bar':'Cozinha'}</button>
+        <button class="toggle-disp ${it.disponivel?'toggle-on':'toggle-off'}" onclick="toggleDisponivel('${it.id}')">${it.disponivel?'Disponível':'Indisponível'}</button>
+        <button class="mini-del" onclick="removerItemCardapio('${it.id}')" title="Remover">×</button>
+      </div>
+    ` : `
+      <div class="cardapio-item">
+        <span class="nome">${escapeHtml(it.nome)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-dim);">${fmtMoeda(it.preco)}</span>
+        <span class="toggle-disp ${it.setor==='bar'?'toggle-bar':'toggle-cozinha'}" style="cursor:default;">${it.setor==='bar'?'Bar':'Cozinha'}</span>
+        <span class="toggle-disp ${it.disponivel?'toggle-on':'toggle-off'}" style="cursor:default;">${it.disponivel?'Disponível':'Indisponível'}</span>
+      </div>
+    `).join('') || '<div style="color:var(--text-dim);font-size:13px;padding:6px 0;">Nenhum item nesta categoria.</div>';
+    return `<div class="cat-group"><h3>${cat}</h3>${rows}</div>`;
+  }).join('');
+}
+
+async function adicionarItemCardapio(){
+  if(!isAdmin) return;
+  const cat = document.getElementById('novoItemCat').value;
+  const nomeInput = document.getElementById('novoItemNome');
+  const precoInput = document.getElementById('novoItemPreco');
+  const setor = document.getElementById('novoItemSetor').value;
+  const nome = nomeInput.value.trim();
+  const preco = parseFloat(precoInput.value);
+  if(!nome || isNaN(preco) || preco < 0) return;
+  cardapio.push({id:uid(),categoria:cat,nome,preco,disponivel:true,setor});
+  nomeInput.value=''; precoInput.value='';
+  await salvarCardapio();
+  renderCardapio();
+}
+
+async function alterarPreco(itemId, valor){
+  if(!isAdmin) return;
+  const item = cardapio.find(c=>c.id===itemId);
+  const p = parseFloat(valor);
+  if(isNaN(p) || p < 0) return;
+  item.preco = p;
+  await salvarCardapio();
+}
+
+async function toggleDisponivel(itemId){
+  if(!isAdmin) return;
+  const item = cardapio.find(c=>c.id===itemId);
+  item.disponivel = !item.disponivel;
+  await salvarCardapio();
+  renderCardapio();
+}
+
+async function toggleSetor(itemId){
+  if(!isAdmin) return;
+  const item = cardapio.find(c=>c.id===itemId);
+  item.setor = item.setor==='bar' ? 'cozinha' : 'bar';
+  await salvarCardapio();
+  renderCardapio();
+}
+
+async function removerItemCardapio(itemId){
+  if(!isAdmin) return;
+  cardapio = cardapio.filter(c=>c.id!==itemId);
+  await salvarCardapio();
+  renderCardapio();
+}
+
+/* ---------------- HISTORICO ---------------- */
+let filtroIniciado = false;
+
+function dataLocalISO(iso){
+  const d = new Date(iso);
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function mudarFiltroPeriodo(){
+  document.getElementById('chipTodosDias').classList.remove('active');
+  renderHistorico();
+}
+
+function verTodosDias(){
+  document.getElementById('filtroDataIni').value = '';
+  document.getElementById('filtroDataFim').value = '';
+  document.getElementById('filtroForma').value = 'todas';
+  document.getElementById('chipTodosDias').classList.add('active');
+  renderHistorico();
+}
+
+async function resetarDadosDeTeste(){
+  if(!isAdmin) return;
+  const ok1 = confirm('Isso vai apagar TODO o histórico de vendas (comissões e faturamento), os cancelamentos registrados, e fechar/limpar todas as mesas, decks, quiosques, chalés e comandas individuais abertas. O cardápio NÃO é afetado. Essa ação não pode ser desfeita. Continuar?');
+  if(!ok1) return;
+  const ok2 = confirm('Tem certeza mesmo? Isso é definitivo — os dados de teste serão apagados agora.');
+  if(!ok2) return;
+
+  mesas = mesas
+    .filter(m=>m.tipo!=='individual')
+    .map(m=>({...m, status:'livre', comanda:null}));
+  historico = [];
+  cancelamentos = [];
+
+  await salvarMesas();
+  await salvarHistorico();
+  await salvarCancelamentos();
+
+  renderMesas();
+  renderCozinha();
+  renderHistorico();
+  fecharOverlay();
+  alert('Pronto! Mesas, decks, quiosques, chalés, histórico e cancelamentos foram zerados. O sistema está limpo pra começar a valer.');
+}
+
+function renderGraficoVendas(periodo){
+  const box = document.getElementById('graficoVendas');
+  if(periodo.length===0){
+    box.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Sem vendas nesse período pra mostrar no gráfico.</div>';
+    return;
+  }
+  const porDia = {};
+  periodo.forEach(h=>{
+    const d = dataLocalISO(h.fechadaEm);
+    porDia[d] = (porDia[d]||0) + h.total;
+  });
+  let dias = Object.keys(porDia).sort();
+  if(dias.length > 30) dias = dias.slice(dias.length-30); // últimos 30 dias com venda
+  const maxValor = Math.max(...dias.map(d=>porDia[d]));
+  const cols = dias.map(d=>{
+    const valor = porDia[d];
+    const alturaPx = maxValor>0 ? Math.max(3, Math.round((valor/maxValor)*130)) : 3;
+    const [y,m,day] = d.split('-');
+    return `
+      <div class="grafico-col" title="${fmtMoeda(valor)}">
+        <div class="grafico-valor">${valor>=1000?(valor/1000).toFixed(1)+'k':Math.round(valor)}</div>
+        <div class="grafico-bar" style="height:${alturaPx}px;"></div>
+        <div class="grafico-data">${day}/${m}</div>
+      </div>
+    `;
+  }).join('');
+  box.innerHTML = `<div class="grafico-barras">${cols}</div>`;
+}
+
+function renderHistorico(){
+  document.getElementById('btnResetarTestes').style.display = isAdmin ? 'inline-block' : 'none';
+  const inputIni = document.getElementById('filtroDataIni');
+  const inputFim = document.getElementById('filtroDataFim');
+  const inputForma = document.getElementById('filtroForma');
+
+  if(!filtroIniciado){
+    filtroIniciado = true;
+    const hojeISO = dataLocalISO(new Date().toISOString());
+    inputIni.value = hojeISO;
+    inputFim.value = hojeISO;
+  }
+
+  const dataIni = inputIni.value || null;
+  const dataFim = inputFim.value || null;
+  const forma = inputForma.value || 'todas';
+  const verTudo = document.getElementById('chipTodosDias').classList.contains('active');
+
+  const periodo = historico.filter(h=>{
+    if(verTudo) return forma==='todas' || h.formaPagamento===forma;
+    const d = dataLocalISO(h.fechadaEm);
+    if(dataIni && d < dataIni) return false;
+    if(dataFim && d > dataFim) return false;
+    if(forma!=='todas' && h.formaPagamento!==forma) return false;
+    return true;
+  });
+
+  const hojeISO = dataLocalISO(new Date().toISOString());
+  let rotulo = 'no período (todos os dias)';
+  if(!verTudo){
+    if(dataIni && dataFim && dataIni===dataFim){
+      rotulo = dataIni===hojeISO ? 'hoje' : `em ${new Date(dataIni+'T12:00:00').toLocaleDateString('pt-BR')}`;
+    } else if(dataIni || dataFim){
+      rotulo = `de ${dataIni?new Date(dataIni+'T12:00:00').toLocaleDateString('pt-BR'):'sempre'} até ${dataFim?new Date(dataFim+'T12:00:00').toLocaleDateString('pt-BR'):'hoje'}`;
+    }
+  }
+
+  document.getElementById('lblQtdPeriodo').textContent = 'Comandas fechadas ' + rotulo;
+  document.getElementById('lblTotalPeriodo').textContent = 'Faturamento ' + rotulo;
+  document.getElementById('lblComissaoPeriodo').textContent = 'Comissão por garçom (' + rotulo + ')';
+  document.getElementById('histQtdHoje').textContent = periodo.length;
+  document.getElementById('histTotalHoje').textContent = fmtMoeda(periodo.reduce((s,h)=>s+h.total,0));
+
+  renderGraficoVendas(periodo);
+
+  const porGarcom = {};
+  periodo.forEach(h=>{
+    const nome = h.garcom || 'Não informado';
+    porGarcom[nome] = (porGarcom[nome]||0) + (h.taxaServico||0);
+  });
+  const comissaoBox = document.getElementById('comissaoGarcons');
+  const nomes = Object.keys(porGarcom);
+  comissaoBox.innerHTML = nomes.length ? nomes.map(nome=>`
+    <div class="hist-card"><div class="lbl">${escapeHtml(nome)}</div><div class="val">${fmtMoeda(porGarcom[nome])}</div></div>
+  `).join('') : '<div style="color:var(--text-dim);font-size:13px;">Nenhuma comanda fechada nesse período.</div>';
+
+  const list = document.getElementById('historicoList');
+  if(periodo.length===0){
+    list.innerHTML = '<div class="empty-msg">Nenhuma comanda fechada nesse período.</div>';
+  } else {
+    list.innerHTML = periodo.slice(0,300).map(h=>`
+      <div class="hist-row">
+        <div class="esq">
+          <span class="mesa-tag">${labelTipo(h.tipo)} ${String(h.mesaNumero).padStart(2,'0')} · ${h.itens.reduce((s,i)=>s+i.qtd,0)} item(ns)</span>
+          <span class="data">${fmtDataHora(h.fechadaEm)} · Garçom: ${escapeHtml(h.garcom||'—')} · comissão ${fmtMoeda(h.taxaServico||0)}</span>
+        </div>
+        <span class="pag-tag">${h.formaPagamento}</span>
+        <span class="valor">${fmtMoeda(h.total)}</span>
+      </div>
+    `).join('');
+  }
+
+  const cancPeriodo = cancelamentos.filter(c=>{
+    if(verTudo) return true;
+    const d = dataLocalISO(c.canceladaEm);
+    if(dataIni && d < dataIni) return false;
+    if(dataFim && d > dataFim) return false;
+    return true;
+  });
+  document.getElementById('lblCancelamentosPeriodo').textContent = `Cancelamentos (${rotulo}) — ${cancPeriodo.length}`;
+  const cancList = document.getElementById('cancelamentosList');
+  if(cancPeriodo.length===0){
+    cancList.innerHTML = '<div class="empty-msg">Nenhum cancelamento nesse período.</div>';
+  } else {
+    cancList.innerHTML = cancPeriodo.slice(0,200).map(c=>`
+      <div class="hist-row">
+        <div class="esq">
+          <span class="mesa-tag">${labelTipo(c.tipo)} ${String(c.mesaNumero).padStart(2,'0')} · ${c.itens.reduce((s,i)=>s+i.qtd,0)} item(ns)</span>
+          <span class="data">${fmtDataHora(c.canceladaEm)} · Garçom: ${escapeHtml(c.garcom||'—')} · Motivo: ${escapeHtml(c.motivo)}</span>
+        </div>
+        <span class="pag-tag" style="background:rgba(193,67,46,.15);color:var(--red-dark);">Cancelada</span>
+      </div>
+    `).join('');
+  }
+}
+
+/* ---------------- IMPRESSAO ---------------- */
+function montarReciboHtml(mesa, subtotal, taxaValor, total, forma){
+  const itens = mesa.comanda.itens;
+  const linhasItens = itens.map(it=>`
+    <div class="print-row">
+      <span class="print-item-name">${it.qtd}x ${escapeHtml(it.nome)}</span>
+      <span>${fmtMoeda(it.preco*it.qtd)}</span>
+    </div>
+    ${it.obs ? `<div class="print-obs">obs: ${escapeHtml(it.obs)}</div>` : ''}
+  `).join('');
+  return `
+    <img class="print-logo" src="data:image/jpeg;base64,${LOGO_BASE64}">
+    <p class="print-title">Fazenda Paraíso</p>
+    <p class="print-sub">${forma ? 'Recibo de consumo' : 'Conferência de consumo (não é recibo fiscal)'}</p>
+    <p class="print-sub">${rotuloUnidade(mesa)}${mesa.comanda.cliente ? ' · Cliente: ' + escapeHtml(mesa.comanda.cliente) : ''}${mesa.comanda.hospede ? ' · Hóspede: ' + escapeHtml(mesa.comanda.hospede) : ''} · Garçom: ${escapeHtml(mesa.comanda.garcom)}</p>
+    <p class="print-sub">${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
+    <div class="print-line"></div>
+    ${linhasItens}
+    <div class="print-line"></div>
+    <div class="print-row"><span>Subtotal</span><span>${fmtMoeda(subtotal)}</span></div>
+    <div class="print-row"><span>3% do garçom</span><span>${fmtMoeda(taxaValor)}</span></div>
+    <div class="print-row print-total"><span>Total</span><span>${fmtMoeda(total)}</span></div>
+    ${forma ? `<div class="print-row"><span>Forma de pagamento</span><span>${forma}</span></div>` : ''}
+    <div class="print-line"></div>
+    <p class="print-foot">Obrigado pela preferência!</p>
+  `;
+}
+
+function montarProducaoSetorHtml(mesa, setor){
+  const itensSetor = mesa.comanda.itens.filter(i=>(i.setor||'cozinha')===setor);
+  const linhasItens = itensSetor.map(it=>`
+    <div class="print-row">
+      <span class="print-item-name" style="font-weight:700;">${it.qtd}x ${escapeHtml(it.nome)}</span>
+    </div>
+    ${it.obs ? `<div class="print-obs">obs: ${escapeHtml(it.obs)}</div>` : ''}
+  `).join('');
+  const nomePrincipal = mesa.comanda.cliente || mesa.comanda.hospede;
+  return `
+    <p class="print-title">${setor==='bar' ? 'BAR' : 'COZINHA'}</p>
+    <p class="print-sub">${rotuloUnidade(mesa)}${nomePrincipal ? ' · ' + escapeHtml(nomePrincipal) : ''} · Garçom: ${escapeHtml(mesa.comanda.garcom)}</p>
+    <p class="print-sub">${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
+    <div class="print-line"></div>
+    ${linhasItens || '<div class="print-obs">Nenhum item deste setor.</div>'}
+    <div class="print-line"></div>
+  `;
+}
+
+function imprimirSetor(mesaId, setor){
+  const mesa = mesas.find(m=>m.id===mesaId);
+  if(!mesa || !mesa.comanda) return;
+  const printArea = document.getElementById('printArea');
+  printArea.className = larguraImpressao===58 ? 'w58' : '';
+  printArea.innerHTML = montarProducaoSetorHtml(mesa, setor);
+  window.print();
+}
+
+function imprimirConferencia(mesaId){
+  const mesa = mesas.find(m=>m.id===mesaId);
+  if(!mesa || !mesa.comanda) return;
+  const subtotal = mesa.comanda.itens.reduce((s,i)=>s+i.preco*i.qtd,0);
+  const taxaChecked = mesa.comanda.taxa !== false;
+  const taxaValor = taxaChecked ? subtotal*0.03 : 0;
+  const total = subtotal + taxaValor;
+  const printArea = document.getElementById('printArea');
+  printArea.className = larguraImpressao===58 ? 'w58' : '';
+  printArea.innerHTML = montarReciboHtml(mesa, subtotal, taxaValor, total, null);
+  window.print();
+}
+
+function imprimirRecibo(mesaId){
+  const mesa = mesas.find(m=>m.id===mesaId);
+  if(!mesa || !mesa.comanda) return;
+  const subtotal = mesa.comanda.itens.reduce((s,i)=>s+i.preco*i.qtd,0);
+  const taxaChecked = mesa.comanda.taxa !== false;
+  const taxaValor = taxaChecked ? subtotal*0.03 : 0;
+  const total = subtotal + taxaValor;
+  const printArea = document.getElementById('printArea');
+  printArea.className = larguraImpressao===58 ? 'w58' : '';
+  printArea.innerHTML = montarReciboHtml(mesa, subtotal, taxaValor, total, formaSelecionada);
+  window.print();
+}
+
+/* carregarEstado() agora é chamado automaticamente após o login (ver auth.onAuthStateChanged) */
+</script>
+</body>
+</html>
