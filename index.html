@@ -291,6 +291,10 @@ body{
 .btn-send{background:var(--amber-dark);color:#fff;}
 .btn-close{background:var(--red);color:#fff;}
 .btn-cancelar{background:transparent;color:var(--red-dark);border:1px solid var(--red-dark);}
+.link-cancelar{
+  width:100%;background:none;border:none;color:var(--red-dark);font-size:12px;
+  text-decoration:underline;cursor:pointer;padding:4px 0 0;font-family:'Inter',sans-serif;
+}
 .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--paper-dim);flex:0 0 auto;}
 
 .abrir-mesa-form{padding:22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);}
@@ -380,7 +384,7 @@ body{
   .ticket-actions-print-row .btn{width:auto;}
   .overlay{padding:0;align-items:stretch;overflow:hidden;}
   .ticket{max-width:100%;border-radius:0;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;}
-  .menu-list{max-height:150px;}
+  .menu-list{max-height:38vh;max-height:38dvh;}
 }
 
 .brand-logo{width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0;}
@@ -1125,8 +1129,7 @@ function renderTicket(){
       </div>
       <button class="btn btn-send" ${!temPendente?'disabled':''} onclick="enviarCozinha()">Enviar p/ cozinha</button>
       <button class="btn btn-close" ${itens.length===0?'disabled':''} onclick="abrirFechamento()">Fechar conta</button>
-      <button class="btn btn-ghost" onclick="fecharOverlay()">Voltar</button>
-      <button class="btn btn-cancelar" onclick="abrirCancelamento('${mesa.id}')">Cancelar comanda</button>
+      <button class="link-cancelar" onclick="abrirCancelamento('${mesa.id}')">Cancelar comanda</button>
     </div>
   `;
 }
