@@ -239,7 +239,7 @@ body{
 }
 .chip.active{background:var(--red);color:#fff;border-color:var(--red);}
 .menu-list{max-height:190px;overflow-y:auto;border:1px solid var(--paper-dim);border-radius:6px;}
-.menu-list-full{flex:1 1 auto;max-height:none;}
+.menu-list-full{height:52vh;height:52dvh;max-height:52vh;max-height:52dvh;overflow-y:auto;}
 .menu-row{
   display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
   border-bottom:1px solid var(--paper-dim);cursor:pointer;
@@ -1124,7 +1124,7 @@ function renderTicket(){
       <button class="subtab-btn ${abaTicketAtiva==='cardapio'?'active':''}" onclick="mudarAbaTicket('cardapio')">Cardápio</button>
       <button class="subtab-btn ${abaTicketAtiva==='pedido'?'active':''}" onclick="mudarAbaTicket('pedido')">Pedido (${itens.length})</button>
     </div>
-    <div class="ticket-body" id="painelCardapio" style="display:${abaTicketAtiva==='cardapio'?'flex':'none'};">
+    <div class="ticket-body" id="painelCardapio" style="display:${abaTicketAtiva==='cardapio'?'block':'none'};">
       <div class="cat-chips">${chipsHtml}</div>
       <div class="menu-list menu-list-full">${menuRowsHtml}</div>
     </div>
