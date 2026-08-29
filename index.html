@@ -216,7 +216,17 @@ body{
 .ticket-close{
   background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 4px;
 }
-.ticket-body{padding:16px 22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);}
+.ticket-body{padding:16px 22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);flex-direction:column;min-height:0;}
+.ticket-subtabs{
+  display:flex;gap:0;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;
+  padding:10px 22px 0;
+}
+.subtab-btn{
+  flex:1;background:none;border:none;border-bottom:2px solid var(--paper-dim);
+  color:var(--ink-soft);font-family:'Oswald',sans-serif;font-weight:600;font-size:12.5px;
+  text-transform:uppercase;letter-spacing:0.3px;padding:9px 4px;cursor:pointer;
+}
+.subtab-btn.active{color:var(--ink);border-bottom-color:var(--ink);}
 .ticket-section-title{
   font-family:'Oswald',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;
   color:var(--ink-soft);margin:14px 0 8px;
@@ -228,6 +238,7 @@ body{
 }
 .chip.active{background:var(--red);color:#fff;border-color:var(--red);}
 .menu-list{max-height:190px;overflow-y:auto;border:1px solid var(--paper-dim);border-radius:6px;}
+.menu-list-full{flex:1 1 auto;max-height:none;}
 .menu-row{
   display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
   border-bottom:1px solid var(--paper-dim);cursor:pointer;
@@ -384,7 +395,6 @@ body{
   .ticket-actions-print-row .btn{width:auto;}
   .overlay{padding:0;align-items:stretch;overflow:hidden;}
   .ticket{max-width:100%;border-radius:0;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;}
-  .menu-list{max-height:38vh;max-height:38dvh;}
 }
 
 .brand-logo{width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0;}
@@ -686,6 +696,11 @@ let historico = [];
 let cancelamentos = [];
 let mesaAberta = null;
 let categoriaAtiva = CATEGORIAS[0];
+let abaTicketAtiva = 'cardapio';
+function mudarAbaTicket(aba){
+  abaTicketAtiva = aba;
+  renderTicket();
+}
 
 let larguraImpressao = 80;
 function setLarguraImpressao(mm){
@@ -978,6 +993,7 @@ function abrirMesa(mesaId){
     renderFormAbrirMesa(mesa);
   } else {
     categoriaAtiva = CATEGORIAS[0];
+    abaTicketAtiva = 'cardapio';
     renderTicket();
   }
 }
@@ -1044,6 +1060,7 @@ async function confirmarAbrirMesa(mesaId){
   await salvarMesas();
   renderMesas();
   categoriaAtiva = CATEGORIAS[0];
+  abaTicketAtiva = 'cardapio';
   renderTicket();
 }
 
@@ -1102,13 +1119,16 @@ function renderTicket(){
       </div>
       <button class="ticket-close" onclick="fecharOverlay()">×</button>
     </div>
-    <div class="ticket-body">
-      <div class="ticket-section-title">Adicionar item</div>
+    <div class="ticket-subtabs">
+      <button class="subtab-btn ${abaTicketAtiva==='cardapio'?'active':''}" onclick="mudarAbaTicket('cardapio')">Cardápio</button>
+      <button class="subtab-btn ${abaTicketAtiva==='pedido'?'active':''}" onclick="mudarAbaTicket('pedido')">Pedido (${itens.length})</button>
+    </div>
+    <div class="ticket-body" id="painelCardapio" style="display:${abaTicketAtiva==='cardapio'?'flex':'none'};">
       <div class="cat-chips">${chipsHtml}</div>
-      <div class="menu-list">${menuRowsHtml}</div>
-
-      <div class="itens-comanda">
-        <div class="ticket-section-title" style="margin-top:0;">Itens da comanda</div>
+      <div class="menu-list menu-list-full">${menuRowsHtml}</div>
+    </div>
+    <div class="ticket-body" id="painelPedido" style="display:${abaTicketAtiva==='pedido'?'block':'none'};">
+      <div class="itens-comanda" style="margin-top:0;border-top:none;padding-top:0;">
         ${itensHtml}
       </div>
     </div>
