@@ -802,7 +802,12 @@ async function carregarEstado(){
   try{
     const snapCardapio = await docCardapio.get();
     cardapio = snapCardapio.exists ? JSON.parse(snapCardapio.data().json) : seedCardapio;
-    if(!snapCardapio.exists) await salvarCardapio();
+    if(!snapCardapio.exists){
+      await salvarCardapio();
+    } else if(!Array.isArray(cardapio) || cardapio.length===0){
+      cardapio = seedCardapio;
+      await salvarCardapio();
+    }
   }catch(e){ cardapio = seedCardapio; }
 
   let precisaMigrarCardapio = false;
@@ -1083,7 +1088,12 @@ function renderTicket(){
   if(!mesa || !mesa.comanda) return;
   const box = document.getElementById('ticketBox');
 
-  const itensDisponiveis = cardapio.filter(c=>c.categoria===categoriaAtiva);
+  // Usa o cardápio salvo no Firebase. Se ele estiver vazio,
+  // utiliza o cardápio padrão para que a tela de pedidos nunca fique sem itens.
+  const cardapioExibicao = Array.isArray(cardapio) && cardapio.length ? cardapio : seedCardapio;
+  const normalizarCategoria = c => String(c||'').trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+  const categoriaBusca = normalizarCategoria(categoriaAtiva);
+  const itensDisponiveis = cardapioExibicao.filter(c=>normalizarCategoria(c.categoria)===categoriaBusca);
   const menuRowsHtml = itensDisponiveis.map(it=>`
     <div class="menu-row ${!it.disponivel?'indisponivel':''}" ${it.disponivel?`onclick="adicionarItemComanda('${it.id}')"`:''}>
       <div>
