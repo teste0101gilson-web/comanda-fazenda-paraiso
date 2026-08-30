@@ -816,6 +816,15 @@ async function carregarEstado(){
 
   let precisaMigrar = false;
   mesas.forEach(m=>{ if(!m.tipo){ m.tipo = 'mesa'; precisaMigrar = true; } });
+
+  const numerosMesaExistentes = mesas.filter(m=>m.tipo==='mesa').map(m=>m.numero);
+  for(let i=1;i<=16;i++){
+    if(!numerosMesaExistentes.includes(i)){
+      mesas.push({id:uid(),tipo:'mesa',numero:i,status:'livre',comanda:null});
+      precisaMigrar = true;
+    }
+  }
+
   if(!mesas.some(m=>m.tipo==='deck')){
     for(let i=1;i<=10;i++) mesas.push({id:uid(),tipo:'deck',numero:i,status:'livre',comanda:null});
     precisaMigrar = true;
