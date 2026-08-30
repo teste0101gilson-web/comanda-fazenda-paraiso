@@ -1141,7 +1141,12 @@ function renderTicket(){
       <div class="menu-list menu-list-full">${menuRowsHtml}</div>
     </div>
     <div class="ticket-body" id="painelPedido" style="display:${abaTicketAtiva==='pedido'?'block':'none'};">
-      <div class="itens-comanda" style="margin-top:0;border-top:none;padding-top:0;">
+      <div class="ticket-section-title" style="margin-top:0;">Adicionar ao pedido</div>
+      <div class="cat-chips">${chipsHtml}</div>
+      <div class="menu-list menu-list-full" style="margin-bottom:14px;">${menuRowsHtml}</div>
+
+      <div class="itens-comanda" style="margin-top:0;">
+        <div class="ticket-section-title" style="margin-top:0;">Itens do pedido</div>
         ${itensHtml}
       </div>
     </div>
