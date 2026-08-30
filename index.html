@@ -197,8 +197,7 @@ body{
 .ticket{
   background:var(--paper);color:var(--ink);border-radius:6px;width:100%;max-width:440px;
   position:relative;box-shadow:0 20px 50px rgba(0,0,0,.5);
-  display:flex;flex-direction:column;overflow:hidden;
-  height:min(700px,86vh);height:min(700px,86dvh);max-height:86vh;max-height:86dvh;
+  max-height:90vh;max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
 .ticket-notch{
   position:absolute;top:-1px;left:0;right:0;height:14px;
@@ -208,7 +207,7 @@ body{
 .ticket-head{
   padding:22px 22px 14px;border-bottom:2px dashed var(--paper-dim);
   display:flex;justify-content:space-between;align-items:flex-start;
-  flex:0 0 auto;background:var(--paper);position:relative;z-index:1;
+  position:sticky;top:0;background:var(--paper);z-index:2;
 }
 .ticket-head h2{
   font-family:'Oswald',sans-serif;font-size:22px;margin:0;text-transform:uppercase;letter-spacing:0.5px;
@@ -217,9 +216,9 @@ body{
 .ticket-close{
   background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 4px;
 }
-.ticket-body{padding:16px 22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);flex-direction:column;min-height:0;}
+.ticket-body{padding:16px 22px;background:var(--paper);}
 .ticket-subtabs{
-  display:flex;gap:0;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;
+  display:flex;gap:0;background:var(--paper);position:sticky;top:64px;z-index:2;
   padding:10px 22px 0;
 }
 .subtab-btn{
@@ -284,12 +283,12 @@ body{
 .item-price{font-family:'IBM Plex Mono',monospace;font-size:13px;min-width:56px;text-align:right;}
 .item-remove{background:none;border:none;color:var(--red-dark);cursor:pointer;font-size:15px;padding:0 2px;}
 
-.ticket-totais{border-top:2px dashed var(--paper-dim);padding:14px 22px;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;}
+.ticket-totais{border-top:2px dashed var(--paper-dim);padding:14px 22px;background:var(--paper);}
 .total-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;font-family:'IBM Plex Mono',monospace;}
 .total-row.grand{font-size:18px;font-weight:600;border-top:1px solid var(--paper-dim);margin-top:6px;padding-top:8px;}
 .taxa-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);margin:6px 0;}
 
-.ticket-actions{display:flex;gap:8px;padding:14px 22px 20px;flex-wrap:wrap;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;}
+.ticket-actions{display:flex;gap:8px;padding:14px 22px 20px;flex-wrap:wrap;background:var(--paper);}
 .ticket-actions-print-row{display:flex;gap:6px;width:100%;}
 .ticket-actions-print-row .btn{font-size:11px;padding:9px 6px;}
 .btn{
@@ -309,7 +308,7 @@ body{
 }
 .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--paper-dim);flex:0 0 auto;}
 
-.abrir-mesa-form{padding:22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);}
+.abrir-mesa-form{padding:22px;background:var(--paper);}
 .abrir-mesa-form input{
   width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--paper-dim);
   font-family:'Inter',sans-serif;font-size:14px;margin:8px 0 16px;background:#fff;
