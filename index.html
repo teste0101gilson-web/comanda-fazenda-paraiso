@@ -218,6 +218,9 @@ body{
   background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 4px;
 }
 .ticket-body{padding:16px 22px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--paper);flex-direction:column;min-height:0;}
+/* O painel visível precisa participar do layout flex para a lista ocupar o espaço disponível. */
+.ticket-body[style*="display:block"]{display:flex !important;}
+.ticket-body[style*="display: block"]{display:flex !important;}
 .ticket-subtabs{
   display:flex;gap:0;flex:0 0 auto;background:var(--paper);position:relative;z-index:1;
   padding:10px 22px 0;
@@ -239,7 +242,7 @@ body{
 }
 .chip.active{background:var(--red);color:#fff;border-color:var(--red);}
 .menu-list{max-height:190px;overflow-y:auto;border:1px solid var(--paper-dim);border-radius:6px;}
-.menu-list-full{height:52vh;height:52dvh;max-height:52vh;max-height:52dvh;overflow-y:auto;}
+.menu-list-full{flex:1 1 auto;height:auto;min-height:110px;max-height:none;overflow-y:auto;}
 .menu-row{
   display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
   border-bottom:1px solid var(--paper-dim);cursor:pointer;
