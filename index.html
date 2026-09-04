@@ -419,6 +419,7 @@ body{
   .print-line{border-top:1px dashed #000;margin:5px 0;}
   .print-row{display:flex;justify-content:space-between;font-size:10.5px;padding:1.5px 0;gap:6px;}
   #printArea.w58 .print-row{font-size:9px;}
+  .print-row-bold{font-weight:700;}
   .print-item-name{flex:1;}
   .print-obs{font-size:9px;font-style:italic;padding-left:8px;}
   .print-total{font-size:12.5px;font-weight:700;}
@@ -1778,8 +1779,8 @@ function renderHistorico(){
 /* ---------------- IMPRESSAO ---------------- */
 function montarReciboHtml(mesa, subtotal, taxaValor, total, forma){
   const itens = mesa.comanda.itens;
-  const linhasItens = itens.map(it=>`
-    <div class="print-row">
+  const linhasItens = itens.map((it,idx)=>`
+    <div class="print-row ${idx%2===0?'print-row-bold':''}">
       <span class="print-item-name">${it.qtd}x ${escapeHtml(it.nome)}</span>
       <span>${fmtMoeda(it.preco*it.qtd)}</span>
     </div>
@@ -1805,9 +1806,9 @@ function montarReciboHtml(mesa, subtotal, taxaValor, total, forma){
 
 function montarProducaoSetorHtml(mesa, setor){
   const itensSetor = mesa.comanda.itens.filter(i=>(i.setor||'cozinha')===setor);
-  const linhasItens = itensSetor.map(it=>`
-    <div class="print-row">
-      <span class="print-item-name" style="font-weight:700;">${it.qtd}x ${escapeHtml(it.nome)}</span>
+  const linhasItens = itensSetor.map((it,idx)=>`
+    <div class="print-row ${idx%2===0?'print-row-bold':''}">
+      <span class="print-item-name">${it.qtd}x ${escapeHtml(it.nome)}</span>
     </div>
     ${it.obs ? `<div class="print-obs">obs: ${escapeHtml(it.obs)}</div>` : ''}
   `).join('');
