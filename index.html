@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Fazenda Paraíso · Comanda</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#C1432E">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
 
@@ -731,16 +736,8 @@ document.getElementById('brandLogoImg').src = 'data:image/jpeg;base64,' + LOGO_B
 document.getElementById('loginLogoImg').src = 'data:image/jpeg;base64,' + LOGO_BASE64;
 document.getElementById('bgWatermark').style.backgroundImage = "url(data:image/jpeg;base64," + LOGO_BASE64 + ")";
 
-// Ícone do site (aba do navegador + atalho/tela de início)
-(function aplicarIconeDoSite(){
-  const href = 'data:image/jpeg;base64,' + LOGO_BASE64;
-  ['icon','shortcut icon','apple-touch-icon'].forEach(rel=>{
-    const link = document.createElement('link');
-    link.rel = rel;
-    link.href = href;
-    document.head.appendChild(link);
-  });
-})();
+// Ícones agora são estáticos (icon-192.png / icon-512.png), declarados no <head>
+// junto do manifest.json — necessário para o Android reconhecer como app instalável.
 
 const seedCardapio = [
   {id:uid(),categoria:'Porções',nome:'Contra filé 500grs',preco:60,disponivel:true,setor:'cozinha'},
@@ -1859,6 +1856,12 @@ function imprimirRecibo(mesaId){
 }
 
 /* carregarEstado() agora é chamado automaticamente após o login (ver auth.onAuthStateChanged) */
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{ /* PWA offline não crítico */ });
+  });
+}
 </script>
 </body>
 </html>
