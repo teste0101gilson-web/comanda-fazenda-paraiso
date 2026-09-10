@@ -1820,9 +1820,78 @@ function montarProducaoSetorHtml(mesa, setor){
   `;
 }
 
+/* ---------------- IMPRESSAO DIRETA VIA RAWBT (Android) ---------------- */
+function isAndroid(){
+  return /android/i.test(navigator.userAgent || '');
+}
+
+function linhaTexto(esquerda, direita, largura){
+  esquerda = String(esquerda);
+  direita = String(direita);
+  const espacos = Math.max(1, largura - esquerda.length - direita.length);
+  return esquerda + ' '.repeat(espacos) + direita;
+}
+
+function montarReciboTexto(mesa, subtotal, taxaValor, total, forma){
+  const L = larguraImpressao===58 ? 32 : 42; // colunas aproximadas por bobina
+  const linha = '-'.repeat(L);
+  let t = '';
+  t += 'FAZENDA PARAISO\n';
+  t += (forma ? 'Recibo de consumo' : 'Conferencia de consumo') + '\n';
+  const nomePrincipal = mesa.comanda.cliente || mesa.comanda.hospede;
+  t += rotuloUnidade(mesa) + (nomePrincipal ? ' - ' + nomePrincipal : '') + '\n';
+  t += 'Garcom: ' + (mesa.comanda.garcom||'-') + '\n';
+  t += new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '\n';
+  t += linha + '\n';
+  mesa.comanda.itens.forEach(it=>{
+    t += linhaTexto(`${it.qtd}x ${it.nome}`, fmtMoeda(it.preco*it.qtd), L) + '\n';
+    if(it.obs) t += `  obs: ${it.obs}\n`;
+  });
+  t += linha + '\n';
+  t += linhaTexto('Subtotal', fmtMoeda(subtotal), L) + '\n';
+  t += linhaTexto('3% do garcom', fmtMoeda(taxaValor), L) + '\n';
+  t += linhaTexto('TOTAL', fmtMoeda(total), L) + '\n';
+  if(forma) t += linhaTexto('Pagamento', forma, L) + '\n';
+  t += linha + '\n';
+  t += 'Obrigado pela preferencia!\n\n\n';
+  return t;
+}
+
+function montarProducaoSetorTexto(mesa, setor){
+  const L = larguraImpressao===58 ? 32 : 42;
+  const linha = '-'.repeat(L);
+  const itensSetor = mesa.comanda.itens.filter(i=>(i.setor||'cozinha')===setor);
+  const nomePrincipal = mesa.comanda.cliente || mesa.comanda.hospede;
+  let t = '';
+  t += (setor==='bar' ? 'BAR' : 'COZINHA') + '\n';
+  t += rotuloUnidade(mesa) + (nomePrincipal ? ' - ' + nomePrincipal : '') + '\n';
+  t += 'Garcom: ' + (mesa.comanda.garcom||'-') + '\n';
+  t += new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '\n';
+  t += linha + '\n';
+  if(itensSetor.length===0){
+    t += 'Nenhum item deste setor.\n';
+  } else {
+    itensSetor.forEach(it=>{
+      t += `${it.qtd}x ${it.nome}\n`;
+      if(it.obs) t += `  obs: ${it.obs}\n`;
+    });
+  }
+  t += linha + '\n\n\n';
+  return t;
+}
+
+function enviarParaRawBT(texto){
+  const base64 = btoa(unescape(encodeURIComponent(texto)));
+  window.location.href = 'rawbt:data:text/plain;base64,' + base64;
+}
+
 function imprimirSetor(mesaId, setor){
   const mesa = mesas.find(m=>m.id===mesaId);
   if(!mesa || !mesa.comanda) return;
+  if(isAndroid()){
+    enviarParaRawBT(montarProducaoSetorTexto(mesa, setor));
+    return;
+  }
   const printArea = document.getElementById('printArea');
   printArea.className = larguraImpressao===58 ? 'w58' : '';
   printArea.innerHTML = montarProducaoSetorHtml(mesa, setor);
@@ -1836,6 +1905,10 @@ function imprimirConferencia(mesaId){
   const taxaChecked = mesa.comanda.taxa !== false;
   const taxaValor = taxaChecked ? subtotal*0.03 : 0;
   const total = subtotal + taxaValor;
+  if(isAndroid()){
+    enviarParaRawBT(montarReciboTexto(mesa, subtotal, taxaValor, total, null));
+    return;
+  }
   const printArea = document.getElementById('printArea');
   printArea.className = larguraImpressao===58 ? 'w58' : '';
   printArea.innerHTML = montarReciboHtml(mesa, subtotal, taxaValor, total, null);
@@ -1849,6 +1922,10 @@ function imprimirRecibo(mesaId){
   const taxaChecked = mesa.comanda.taxa !== false;
   const taxaValor = taxaChecked ? subtotal*0.03 : 0;
   const total = subtotal + taxaValor;
+  if(isAndroid()){
+    enviarParaRawBT(montarReciboTexto(mesa, subtotal, taxaValor, total, formaSelecionada));
+    return;
+  }
   const printArea = document.getElementById('printArea');
   printArea.className = larguraImpressao===58 ? 'w58' : '';
   printArea.innerHTML = montarReciboHtml(mesa, subtotal, taxaValor, total, formaSelecionada);
