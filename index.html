@@ -1820,7 +1820,7 @@ function montarProducaoSetorHtml(mesa, setor){
   `;
 }
 
-/* ---------------- IMPRESSAO DIRETA VIA RAWBT (Android) ---------------- */
+/* ---------------- IMPRESSAO DIRETA VIA APP PROPRIO (Android) ---------------- */
 function isAndroid(){
   return /android/i.test(navigator.userAgent || '');
 }
@@ -1880,16 +1880,37 @@ function montarProducaoSetorTexto(mesa, setor){
   return t;
 }
 
-function enviarParaRawBT(texto){
+function tentarAbrirApp(url, aoFalhar){
+  let tratado = false;
+  const finalizar = ()=>{
+    if(tratado) return;
+    tratado = true;
+    clearTimeout(timer);
+    document.removeEventListener('visibilitychange', aoEsconder);
+  };
+  const aoEsconder = ()=>{ if(document.hidden){ mostrarErroSalvamento('App abriu! ✓'); finalizar(); } };
+  document.addEventListener('visibilitychange', aoEsconder);
+  const timer = setTimeout(()=>{ if(!tratado){ tratado=true; document.removeEventListener('visibilitychange', aoEsconder); mostrarErroSalvamento('App não respondeu em 1.5s — usando impressão comum.'); aoFalhar(); } }, 1500);
+  mostrarErroSalvamento('Tentando abrir: ' + url.slice(0,60) + '...');
+  window.location.href = url;
+}
+
+function enviarParaImpressao(texto, chaveImpressora, aoFalharTudo){
   const base64 = btoa(unescape(encodeURIComponent(texto)));
-  window.location.href = 'rawbt:data:text/plain;base64,' + base64;
+  const urlAppProprio = `fazendaparaiso://print?printer=${chaveImpressora}&data=${encodeURIComponent(base64)}`;
+  tentarAbrirApp(urlAppProprio, aoFalharTudo);
 }
 
 function imprimirSetor(mesaId, setor){
   const mesa = mesas.find(m=>m.id===mesaId);
   if(!mesa || !mesa.comanda) return;
   if(isAndroid()){
-    enviarParaRawBT(montarProducaoSetorTexto(mesa, setor));
+    enviarParaImpressao(montarProducaoSetorTexto(mesa, setor), setor, ()=>{
+      const printArea = document.getElementById('printArea');
+      printArea.className = larguraImpressao===58 ? 'w58' : '';
+      printArea.innerHTML = montarProducaoSetorHtml(mesa, setor);
+      window.print();
+    });
     return;
   }
   const printArea = document.getElementById('printArea');
@@ -1906,7 +1927,12 @@ function imprimirConferencia(mesaId){
   const taxaValor = taxaChecked ? subtotal*0.03 : 0;
   const total = subtotal + taxaValor;
   if(isAndroid()){
-    enviarParaRawBT(montarReciboTexto(mesa, subtotal, taxaValor, total, null));
+    enviarParaImpressao(montarReciboTexto(mesa, subtotal, taxaValor, total, null), 'principal', ()=>{
+      const printArea = document.getElementById('printArea');
+      printArea.className = larguraImpressao===58 ? 'w58' : '';
+      printArea.innerHTML = montarReciboHtml(mesa, subtotal, taxaValor, total, null);
+      window.print();
+    });
     return;
   }
   const printArea = document.getElementById('printArea');
@@ -1923,7 +1949,12 @@ function imprimirRecibo(mesaId){
   const taxaValor = taxaChecked ? subtotal*0.03 : 0;
   const total = subtotal + taxaValor;
   if(isAndroid()){
-    enviarParaRawBT(montarReciboTexto(mesa, subtotal, taxaValor, total, formaSelecionada));
+    enviarParaImpressao(montarReciboTexto(mesa, subtotal, taxaValor, total, formaSelecionada), 'principal', ()=>{
+      const printArea = document.getElementById('printArea');
+      printArea.className = larguraImpressao===58 ? 'w58' : '';
+      printArea.innerHTML = montarReciboHtml(mesa, subtotal, taxaValor, total, formaSelecionada);
+      window.print();
+    });
     return;
   }
   const printArea = document.getElementById('printArea');
