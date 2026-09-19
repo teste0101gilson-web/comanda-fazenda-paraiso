@@ -572,6 +572,20 @@ body{
       <div class="hist-card"><div class="lbl" id="lblTotalPeriodo">Faturamento hoje</div><div class="val" id="histTotalHoje">R$ 0,00</div></div>
     </div>
 
+    <div class="ticket-section-title" style="color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+      <span>Relatório de vendas</span>
+      <span style="display:flex;gap:8px;align-items:center;">
+        <select id="relatorioDimensao" onchange="renderRelatorioVendas()" style="background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:6px;font-size:12px;">
+          <option value="categoria">Por categoria do cardápio</option>
+          <option value="setor">Por setor (Cozinha/Bar)</option>
+          <option value="local">Por tipo de local (Mesa/Deck/Quiosque/Chalé)</option>
+          <option value="item">Detalhado (item por item)</option>
+        </select>
+        <button class="chip" onclick="imprimirRelatorioVendas()" style="padding:5px 10px;font-size:11px;">Imprimir relatório</button>
+      </span>
+    </div>
+    <div id="relatorioVendasBox" style="margin-bottom:20px;"></div>
+
     <div class="ticket-section-title" style="color:var(--text-dim);">Fluxo de vendas</div>
     <div class="grafico-box" id="graficoVendas"></div>
 
@@ -608,8 +622,11 @@ try{
 }catch(e){}
 const docCardapio = db.collection('estado').doc('cardapio');
 const docMesas = db.collection('estado').doc('mesas');
-const docHistorico = db.collection('estado').doc('historico');
-const docCancelamentos = db.collection('estado').doc('cancelamentos');
+const docHistorico = db.collection('estado').doc('historico'); // legado, só leitura na migração
+const docCancelamentos = db.collection('estado').doc('cancelamentos'); // legado, só leitura na migração
+const docMigracao = db.collection('estado').doc('migracaoVendas');
+const colVendas = db.collection('vendas');
+const colCancelamentosReg = db.collection('cancelamentosReg');
 
 /* ---------------- LOGIN ---------------- */
 const ADMIN_EMAILS = ['adm@fazendaparaiso.com', 'admin@fazendaparaiso.com'];
@@ -892,18 +909,51 @@ async function carregarEstado(){
   }
   if(precisaMigrar) await salvarMesas();
 
-  try{
-    const snapHistorico = await docHistorico.get();
-    historico = snapHistorico.exists ? JSON.parse(snapHistorico.data().json) : [];
-  }catch(e){ historico = []; }
-
-  try{
-    const snapCancel = await docCancelamentos.get();
-    cancelamentos = snapCancel.exists ? JSON.parse(snapCancel.data().json) : [];
-  }catch(e){ cancelamentos = []; }
+  await migrarParaColecoes();
+  historico = [];
+  cancelamentos = [];
 
   renderTudo();
   ativarSincroniaTempoReal();
+  inicializarFiltroHistorico();
+  await carregarHistoricoFiltrado();
+  await carregarCancelamentosFiltrado();
+}
+
+/* ---------------- MIGRAÇÃO: histórico/cancelamentos de "1 documento gigante" pra "1 documento por venda" ---------------- */
+async function migrarParaColecoes(){
+  try{
+    const snapMigracao = await docMigracao.get();
+    if(snapMigracao.exists && snapMigracao.data().feita) return; // já migrado antes, não repete
+  }catch(e){ return; } // sem permissão de leitura ainda ou erro de rede — tenta de novo no próximo carregamento
+
+  try{
+    const snapHistorico = await docHistorico.get();
+    const historicoAntigo = snapHistorico.exists ? JSON.parse(snapHistorico.data().json) : [];
+    await gravarEmLotes(colVendas, historicoAntigo);
+
+    const snapCancel = await docCancelamentos.get();
+    const cancelamentosAntigos = snapCancel.exists ? JSON.parse(snapCancel.data().json) : [];
+    await gravarEmLotes(colCancelamentosReg, cancelamentosAntigos);
+
+    await docMigracao.set({ feita: true, em: new Date().toISOString(), qtdVendas: historicoAntigo.length, qtdCancelamentos: cancelamentosAntigos.length });
+  }catch(e){
+    console.error('erro na migração de vendas', e);
+    // não trava o sistema por causa disso — só tenta de novo no próximo carregamento
+  }
+}
+
+async function gravarEmLotes(colecao, itens){
+  const TAMANHO_LOTE = 400;
+  for(let i=0; i<itens.length; i+=TAMANHO_LOTE){
+    const pedaco = itens.slice(i, i+TAMANHO_LOTE);
+    const lote = db.batch();
+    pedaco.forEach(item=>{
+      const id = item.id || uid();
+      lote.set(colecao.doc(id), item);
+    });
+    await lote.commit();
+  }
 }
 
 function mostrarErroSalvamento(msg){
@@ -934,19 +984,17 @@ async function salvarMesas(){
     mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar. Verifique a conexão.');
   }
 }
-async function salvarHistorico(){
-  if(historico.length > 400) historico = historico.slice(0,400);
-  try{ await docHistorico.set({json: JSON.stringify(historico)}); }
+async function salvarVenda(venda){
+  try{ await colVendas.doc(venda.id).set(venda); }
   catch(e){
-    console.error('erro ao salvar histórico', e);
-    mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar o histórico. Verifique a conexão.');
+    console.error('erro ao salvar venda', e);
+    mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar a venda. Verifique a conexão.');
   }
 }
-async function salvarCancelamentos(){
-  if(cancelamentos.length > 300) cancelamentos = cancelamentos.slice(0,300);
-  try{ await docCancelamentos.set({json: JSON.stringify(cancelamentos)}); }
+async function salvarCancelamentoReg(cancel){
+  try{ await colCancelamentosReg.doc(cancel.id).set(cancel); }
   catch(e){
-    console.error('erro ao salvar cancelamentos', e);
+    console.error('erro ao salvar cancelamento', e);
     mostrarErroSalvamento(e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.' : 'Não foi possível salvar o cancelamento. Verifique a conexão.');
   }
 }
@@ -966,23 +1014,13 @@ function ativarSincroniaTempoReal(){
     renderMesas();
     renderCozinha();
   });
-  docHistorico.onSnapshot(snap=>{
-    if(!snap.exists) return;
-    historico = JSON.parse(snap.data().json);
-    renderHistorico();
-  });
-  docCancelamentos.onSnapshot(snap=>{
-    if(!snap.exists) return;
-    cancelamentos = JSON.parse(snap.data().json);
-    renderHistorico();
-  });
 }
 
 function renderTudo(){
   renderMesas();
   renderCozinha();
   renderCardapio();
-  renderHistorico();
+  renderizarListaHistorico();
   if(mesaAberta) renderTicket();
 }
 
@@ -1233,7 +1271,7 @@ async function adicionarItemComanda(itemId){
   if(existente){
     existente.qtd += 1;
   } else {
-    mesa.comanda.itens.push({uid:uid(),itemId:item.id,nome:item.nome,preco:item.preco,qtd:1,obs:'',status:'pendente',setor:item.setor||'cozinha'});
+    mesa.comanda.itens.push({uid:uid(),itemId:item.id,nome:item.nome,preco:item.preco,qtd:1,obs:'',status:'pendente',setor:item.setor||'cozinha',categoria:item.categoria||''});
   }
   await salvarMesas();
   renderTicket();
@@ -1328,7 +1366,7 @@ function selecionarForma(f){
 
 async function confirmarFechamento(subtotal, taxaValor, total){
   const mesa = mesas.find(m=>m.id===mesaAberta);
-  historico.unshift({
+  const venda = {
     id: uid(),
     tipo: mesa.tipo,
     mesaNumero: mesa.numero,
@@ -1336,23 +1374,24 @@ async function confirmarFechamento(subtotal, taxaValor, total){
     cliente: mesa.comanda.cliente || null,
     hospede: mesa.comanda.hospede || null,
     visitante: mesa.comanda.visitante || null,
-    itens: mesa.comanda.itens.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco,obs:i.obs||''})),
+    itens: mesa.comanda.itens.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco,obs:i.obs||'',setor:i.setor||'cozinha',categoria:i.categoria||''})),
     subtotal, taxaServico: taxaValor, total,
     formaPagamento: formaSelecionada,
     fechadaEm: new Date().toISOString()
-  });
+  };
+  historico.unshift(venda);
   if(mesa.tipo === 'individual'){
     mesas = mesas.filter(m=>m.id!==mesa.id);
   } else {
     mesa.status = 'livre';
     mesa.comanda = null;
   }
-  await salvarHistorico();
+  await salvarVenda(venda);
   await salvarMesas();
   fecharOverlay();
   renderMesas();
   renderCozinha();
-  renderHistorico();
+  renderizarListaHistorico();
 }
 
 /* ---------------- CANCELAMENTO ---------------- */
@@ -1449,16 +1488,17 @@ async function confirmarCancelamento(mesaId){
   const detalhe = document.getElementById('motivoDetalheInput').value.trim();
   const motivoCompleto = detalhe ? `${motivoSelecionado} — ${detalhe}` : motivoSelecionado;
 
-  cancelamentos.unshift({
+  const cancel = {
     id: uid(),
     tipo: mesa.tipo,
     mesaNumero: mesa.numero,
     garcom: mesa.comanda.garcom,
-    itens: mesa.comanda.itens.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco})),
+    itens: mesa.comanda.itens.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco,setor:i.setor||'cozinha',categoria:i.categoria||''})),
     motivo: motivoCompleto,
     canceladaEm: new Date().toISOString(),
     canceladoPor: usuarioLogadoEmail
-  });
+  };
+  cancelamentos.unshift(cancel);
 
   if(mesa.tipo === 'individual'){
     mesas = mesas.filter(m=>m.id!==mesa.id);
@@ -1467,12 +1507,12 @@ async function confirmarCancelamento(mesaId){
     mesa.comanda = null;
   }
 
-  await salvarCancelamentos();
+  await salvarCancelamentoReg(cancel);
   await salvarMesas();
   fecharOverlay();
   renderMesas();
   renderCozinha();
-  renderHistorico();
+  renderizarListaHistorico();
 }
 
 /* ---------------- COZINHA ---------------- */
@@ -1603,7 +1643,8 @@ async function removerItemCardapio(itemId){
 }
 
 /* ---------------- HISTORICO ---------------- */
-let filtroIniciado = false;
+let unsubVendas = null;
+let unsubCancelReg = null;
 
 function dataLocalISO(iso){
   const d = new Date(iso);
@@ -1611,9 +1652,31 @@ function dataLocalISO(iso){
   return `${y}-${m}-${day}`;
 }
 
+function inicializarFiltroHistorico(){
+  const hojeISO = dataLocalISO(new Date().toISOString());
+  document.getElementById('filtroDataIni').value = hojeISO;
+  document.getElementById('filtroDataFim').value = hojeISO;
+}
+
+// Monta os limites de consulta com 1 dia de folga de cada lado (o banco guarda
+// hora em UTC, e nós filtramos por dia local — a folga evita perder venda feita
+// à noite que "vira o dia" em UTC; o corte exato acontece depois, no JS).
+function limitesConsultaPorPeriodo(){
+  const verTudo = document.getElementById('chipTodosDias').classList.contains('active');
+  if(verTudo) return null;
+  const dataIni = document.getElementById('filtroDataIni').value;
+  const dataFim = document.getElementById('filtroDataFim').value;
+  const base = dataIni || dataFim;
+  if(!base) return null;
+  const inicio = new Date((dataIni||base) + 'T00:00:00'); inicio.setDate(inicio.getDate()-1);
+  const fim = new Date((dataFim||base) + 'T23:59:59'); fim.setDate(fim.getDate()+1);
+  return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+}
+
 function mudarFiltroPeriodo(){
   document.getElementById('chipTodosDias').classList.remove('active');
-  renderHistorico();
+  carregarHistoricoFiltrado();
+  carregarCancelamentosFiltrado();
 }
 
 function verTodosDias(){
@@ -1621,7 +1684,49 @@ function verTodosDias(){
   document.getElementById('filtroDataFim').value = '';
   document.getElementById('filtroForma').value = 'todas';
   document.getElementById('chipTodosDias').classList.add('active');
-  renderHistorico();
+  carregarHistoricoFiltrado();
+  carregarCancelamentosFiltrado();
+}
+
+async function carregarHistoricoFiltrado(){
+  if(unsubVendas){ unsubVendas(); unsubVendas = null; }
+  const limites = limitesConsultaPorPeriodo();
+  const query = limites
+    ? colVendas.where('fechadaEm','>=',limites.inicio).where('fechadaEm','<=',limites.fim).orderBy('fechadaEm','desc')
+    : colVendas.orderBy('fechadaEm','desc').limit(500);
+  unsubVendas = query.onSnapshot(snap=>{
+    historico = snap.docs.map(d=>d.data());
+    renderizarListaHistorico();
+  }, err=>{
+    console.error('erro ao consultar vendas', err);
+    mostrarErroSalvamento('Não foi possível carregar o histórico de vendas.');
+  });
+}
+
+async function carregarCancelamentosFiltrado(){
+  if(unsubCancelReg){ unsubCancelReg(); unsubCancelReg = null; }
+  const limites = limitesConsultaPorPeriodo();
+  const query = limites
+    ? colCancelamentosReg.where('canceladaEm','>=',limites.inicio).where('canceladaEm','<=',limites.fim).orderBy('canceladaEm','desc')
+    : colCancelamentosReg.orderBy('canceladaEm','desc').limit(300);
+  unsubCancelReg = query.onSnapshot(snap=>{
+    cancelamentos = snap.docs.map(d=>d.data());
+    renderizarListaHistorico();
+  }, err=>{
+    console.error('erro ao consultar cancelamentos', err);
+  });
+}
+
+async function apagarColecaoInteira(colecao){
+  let restam = true;
+  while(restam){
+    const snap = await colecao.limit(400).get();
+    if(snap.empty){ restam = false; break; }
+    const lote = db.batch();
+    snap.docs.forEach(d=>lote.delete(d.ref));
+    await lote.commit();
+    if(snap.size < 400) restam = false;
+  }
 }
 
 async function resetarDadosDeTeste(){
@@ -1634,16 +1739,17 @@ async function resetarDadosDeTeste(){
   mesas = mesas
     .filter(m=>m.tipo!=='individual')
     .map(m=>({...m, status:'livre', comanda:null}));
+
+  await salvarMesas();
+  await apagarColecaoInteira(colVendas);
+  await apagarColecaoInteira(colCancelamentosReg);
   historico = [];
   cancelamentos = [];
 
-  await salvarMesas();
-  await salvarHistorico();
-  await salvarCancelamentos();
-
   renderMesas();
   renderCozinha();
-  renderHistorico();
+  await carregarHistoricoFiltrado();
+  await carregarCancelamentosFiltrado();
   fecharOverlay();
   alert('Pronto! Mesas, decks, quiosques, chalés, histórico e cancelamentos foram zerados. O sistema está limpo pra começar a valer.');
 }
@@ -1677,18 +1783,112 @@ function renderGraficoVendas(periodo){
   box.innerHTML = `<div class="grafico-barras">${cols}</div>`;
 }
 
-function renderHistorico(){
+/* ---------------- RELATORIO DE VENDAS AGRUPADO ---------------- */
+function calcularRelatorioAgrupado(periodo, dimensao){
+  const grupos = {};
+  const adicionar = (chave, qtd, valor)=>{
+    if(!grupos[chave]) grupos[chave] = {qtd:0, valor:0};
+    grupos[chave].qtd += qtd;
+    grupos[chave].valor += valor;
+  };
+  if(dimensao === 'local'){
+    periodo.forEach(venda=>{
+      adicionar(labelTipo(venda.tipo), 1, venda.total);
+    });
+  } else {
+    periodo.forEach(venda=>{
+      (venda.itens||[]).forEach(item=>{
+        let chave;
+        if(dimensao === 'categoria') chave = item.categoria || 'Sem categoria';
+        else if(dimensao === 'setor') chave = item.setor === 'bar' ? 'Bar' : 'Cozinha';
+        else chave = item.nome;
+        adicionar(chave, item.qtd, item.preco*item.qtd);
+      });
+    });
+  }
+  return Object.keys(grupos).sort((a,b)=>grupos[b].valor-grupos[a].valor).map(chave=>({chave, ...grupos[chave]}));
+}
+
+function renderRelatorioVendas(){
+  const box = document.getElementById('relatorioVendasBox');
+  const periodo = window.periodoAtualRelatorio || [];
+  const dimensao = document.getElementById('relatorioDimensao').value;
+  if(periodo.length===0){
+    box.innerHTML = '<div class="empty-msg">Sem vendas nesse período pra gerar relatório.</div>';
+    return;
+  }
+  const linhas = calcularRelatorioAgrupado(periodo, dimensao);
+  const totalGeral = linhas.reduce((s,l)=>s+l.valor,0);
+  const rotuloQtd = dimensao === 'local' ? 'comandas' : 'unid.';
+  box.innerHTML = `
+    <div class="hist-row" style="background:var(--panel-2);font-weight:700;">
+      <div class="esq"><span class="mesa-tag">${dimensao==='local'?'Local':dimensao==='setor'?'Setor':dimensao==='item'?'Item':'Categoria'}</span></div>
+      <span class="pag-tag" style="background:none;">Qtd.</span>
+      <span class="valor">Total</span>
+    </div>
+    ${linhas.map(l=>`
+      <div class="hist-row">
+        <div class="esq"><span class="mesa-tag">${escapeHtml(l.chave)}</span></div>
+        <span class="pag-tag">${l.qtd} ${rotuloQtd}</span>
+        <span class="valor">${fmtMoeda(l.valor)}</span>
+      </div>
+    `).join('')}
+    <div class="hist-row" style="background:var(--panel-2);font-weight:700;">
+      <div class="esq"><span class="mesa-tag">Total geral</span></div>
+      <span class="pag-tag"></span>
+      <span class="valor">${fmtMoeda(totalGeral)}</span>
+    </div>
+  `;
+}
+
+function montarRelatorioTexto(periodo, dimensao){
+  const L = larguraImpressao===58 ? 32 : 42;
+  const linhaSep = '-'.repeat(L);
+  const rotuloDimensao = dimensao==='local'?'POR LOCAL':dimensao==='setor'?'POR SETOR':dimensao==='item'?'DETALHADO POR ITEM':'POR CATEGORIA';
+  const linhas = calcularRelatorioAgrupado(periodo, dimensao);
+  const totalGeral = linhas.reduce((s,l)=>s+l.valor,0);
+  let t = '';
+  t += 'FAZENDA PARAISO\n';
+  t += 'RELATORIO DE VENDAS - ' + rotuloDimensao + '\n';
+  t += (window.rotuloAtualRelatorio || '') + '\n';
+  t += new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '\n';
+  t += linhaSep + '\n';
+  linhas.forEach(l=>{
+    t += linhaTexto(l.chave, fmtMoeda(l.valor), L) + '\n';
+    t += `  (${l.qtd} ${dimensao==='local'?'comandas':'unid.'})\n`;
+  });
+  t += linhaSep + '\n';
+  t += linhaTexto('TOTAL GERAL', fmtMoeda(totalGeral), L) + '\n';
+  t += linhaTexto('Comandas no periodo', String(periodo.length), L) + '\n';
+  t += linhaSep + '\n\n\n';
+  return t;
+}
+
+function imprimirRelatorioVendas(){
+  const periodo = window.periodoAtualRelatorio || [];
+  if(periodo.length===0){ alert('Sem vendas nesse período pra imprimir.'); return; }
+  const dimensao = document.getElementById('relatorioDimensao').value;
+  const texto = montarRelatorioTexto(periodo, dimensao);
+  if(isAndroid()){
+    enviarParaImpressao(texto, 'principal', ()=>{
+      const printArea = document.getElementById('printArea');
+      printArea.className = larguraImpressao===58 ? 'w58' : '';
+      printArea.innerHTML = texto.split('\n').map(l=>`<div class="print-row"><span class="print-item-name">${escapeHtml(l)}</span></div>`).join('');
+      window.print();
+    });
+    return;
+  }
+  const printArea = document.getElementById('printArea');
+  printArea.className = larguraImpressao===58 ? 'w58' : '';
+  printArea.innerHTML = texto.split('\n').map(l=>`<div class="print-row"><span class="print-item-name">${escapeHtml(l)}</span></div>`).join('');
+  window.print();
+}
+
+function renderizarListaHistorico(){
   document.getElementById('btnResetarTestes').style.display = isAdmin ? 'inline-block' : 'none';
   const inputIni = document.getElementById('filtroDataIni');
   const inputFim = document.getElementById('filtroDataFim');
   const inputForma = document.getElementById('filtroForma');
-
-  if(!filtroIniciado){
-    filtroIniciado = true;
-    const hojeISO = dataLocalISO(new Date().toISOString());
-    inputIni.value = hojeISO;
-    inputFim.value = hojeISO;
-  }
 
   const dataIni = inputIni.value || null;
   const dataFim = inputFim.value || null;
@@ -1721,6 +1921,9 @@ function renderHistorico(){
   document.getElementById('histTotalHoje').textContent = fmtMoeda(periodo.reduce((s,h)=>s+h.total,0));
 
   renderGraficoVendas(periodo);
+  window.periodoAtualRelatorio = periodo;
+  window.rotuloAtualRelatorio = rotulo;
+  renderRelatorioVendas();
 
   const porGarcom = {};
   periodo.forEach(h=>{
