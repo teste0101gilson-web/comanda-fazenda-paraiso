@@ -505,6 +505,7 @@ body{
       <button class="area-tab" data-area="individual" onclick="mudarAreaFiltro('individual')">Comanda individual</button>
     </div>
     <button class="btn btn-primary" id="btnNovaIndividual" style="display:none;max-width:260px;margin-bottom:16px;" onclick="abrirComandaIndividual()">+ Nova comanda individual</button>
+    <button class="btn btn-primary" style="max-width:220px;margin-bottom:16px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);" onclick="abrirVendaAvista()">⚡ Venda à vista</button>
     <div class="mesas-grid" id="mesasGrid"></div>
   </div>
 
@@ -840,16 +841,23 @@ const seedCardapio = [
 ];
 
 function labelTipo(tipo){
-  return {mesa:'Mesa', deck:'Deck', quiosque:'Quiosque', individual:'Comanda', chale:'Chalé'}[tipo] || 'Mesa';
+  return {mesa:'Mesa', deck:'Deck', quiosque:'Quiosque', individual:'Comanda', chale:'Chalé', avista:'Venda à vista'}[tipo] || 'Mesa';
+}
+
+// Mostra o tipo+número pra unidades normais, e um rótulo fixo (sem número)
+// pra venda à vista, que não tem mesa/local associado.
+function rotuloCurto(tipo, numero){
+  if(tipo === 'avista') return 'Venda à vista';
+  return labelTipo(tipo) + ' ' + String(numero).padStart(2,'0');
 }
 
 // Cores pra diferenciar visualmente cada tipo de local, setor e categoria
 // nos relatórios e no fechamento de caixa.
-const CORES_TIPO = { mesa:'#4C7CC9', deck:'#2E9E6F', quiosque:'#D9A441', chale:'#C1432E', individual:'#8B5FBF' };
+const CORES_TIPO = { mesa:'#4C7CC9', deck:'#2E9E6F', quiosque:'#D9A441', chale:'#C1432E', individual:'#8B5FBF', avista:'#6B6B6B' };
 const CORES_SETOR = { cozinha:'#C1432E', bar:'#4C7CC9' };
 const CORES_CATEGORIA = { 'Porções':'#C1432E', 'Guarnições':'#D9A441', 'Bebidas':'#4C7CC9', 'Pesca':'#2E9E6F' };
 const CORES_PAGAMENTO = { 'Dinheiro':'#2E9E6F', 'Cartão':'#4C7CC9', 'Pix':'#8B5FBF', 'Combinado':'#D9A441' };
-const TIPO_POR_LABEL = { 'Mesa':'mesa', 'Deck':'deck', 'Quiosque':'quiosque', 'Chalé':'chale', 'Comanda':'individual' };
+const TIPO_POR_LABEL = { 'Mesa':'mesa', 'Deck':'deck', 'Quiosque':'quiosque', 'Chalé':'chale', 'Comanda':'individual', 'Venda à vista':'avista' };
 
 function corPorDimensao(dimensao, chave){
   if(dimensao === 'local') return CORES_TIPO[TIPO_POR_LABEL[chave]] || '#888';
@@ -859,6 +867,7 @@ function corPorDimensao(dimensao, chave){
   return null;
 }
 function rotuloUnidade(u){
+  if(u.tipo === 'avista') return 'Venda à vista';
   return labelTipo(u.tipo) + ' ' + String(u.numero).padStart(2,'0');
 }
 
@@ -1355,6 +1364,206 @@ async function enviarCozinha(){
   renderMesas();
 }
 
+/* ---------------- VENDA A VISTA (sem abrir comanda/mesa) ----------------
+   Pra vendas rápidas no balcão (ex: pesca, bebida avulsa) que são pagas na
+   hora, sem precisar abrir uma mesa, mandar pra cozinha etc. Gera uma venda
+   normal no histórico/relatórios/caixa, só que sem local associado. */
+let carrinhoAvista = [];
+let categoriaAvistaAtiva = CATEGORIAS[0];
+let taxaAvista = false;
+let abaVendaAvistaAtiva = 'cardapio';
+
+function abrirVendaAvista(){
+  carrinhoAvista = [];
+  categoriaAvistaAtiva = CATEGORIAS[0];
+  taxaAvista = false;
+  abaVendaAvistaAtiva = 'cardapio';
+  mesaAberta = null;
+  document.getElementById('overlay').classList.add('open');
+  renderVendaAvista();
+}
+
+function mudarAbaVendaAvista(a){ abaVendaAvistaAtiva = a; renderVendaAvista(); }
+function mudarCategoriaAvista(c){ categoriaAvistaAtiva = c; renderVendaAvista(); }
+
+function adicionarItemAvista(itemId){
+  const item = cardapio.find(c=>c.id===itemId);
+  if(!item) return;
+  const existente = carrinhoAvista.find(i=>i.itemId===itemId && !i.obs);
+  if(existente) existente.qtd += 1;
+  else carrinhoAvista.push({uid:uid(), itemId:item.id, nome:item.nome, preco:item.preco, qtd:1, obs:'', setor:item.setor||'cozinha', categoria:item.categoria||''});
+  renderVendaAvista();
+}
+
+function alterarQtdAvista(itemUid, delta){
+  const it = carrinhoAvista.find(i=>i.uid===itemUid);
+  if(!it) return;
+  it.qtd += delta;
+  if(it.qtd <= 0) carrinhoAvista = carrinhoAvista.filter(i=>i.uid!==itemUid);
+  renderVendaAvista();
+}
+
+function removerItemAvista(itemUid){
+  carrinhoAvista = carrinhoAvista.filter(i=>i.uid!==itemUid);
+  renderVendaAvista();
+}
+
+function toggleTaxaAvista(checked){
+  taxaAvista = checked;
+  renderVendaAvista();
+}
+
+function renderVendaAvista(){
+  const box = document.getElementById('ticketBox');
+  const itensDisponiveis = cardapio.filter(c=>c.categoria===categoriaAvistaAtiva);
+  const tempoEsperaCat = tempoEsperaCategoria(categoriaAvistaAtiva);
+  const menuRowsHtml = itensDisponiveis.map(it=>`
+    <div class="menu-row ${!it.disponivel?'indisponivel':''}" ${it.disponivel?`onclick="adicionarItemAvista('${it.id}')"`:''}>
+      <div>
+        <div class="menu-row-name">${escapeHtml(it.nome)}</div>
+        <div class="menu-row-price">${fmtMoeda(it.preco)}</div>
+      </div>
+      ${it.disponivel ? '<button class="add-btn" tabindex="-1">+</button>' : '<span style="font-size:11px;color:var(--ink-soft)">indisp.</span>'}
+    </div>
+  `).join('') || '<div style="padding:14px;font-size:13px;color:var(--ink-soft)">Nenhum item nesta categoria.</div>';
+  const chipsHtml = CATEGORIAS.map(c=>`<div class="chip ${c===categoriaAvistaAtiva?'active':''}" onclick="mudarCategoriaAvista('${c}')">${c}</div>`).join('');
+  const avisoTempoEsperaHtml = tempoEsperaCat ? `<div style="font-size:12px;color:var(--ink-soft);padding:6px 2px 2px;">⏱ Tempo de espera: ${tempoEsperaCat}</div>` : '';
+
+  const itensHtml = carrinhoAvista.length ? carrinhoAvista.map(it=>`
+    <div class="item-line">
+      <div class="item-qty-ctrl">
+        <button class="qty-btn" onclick="alterarQtdAvista('${it.uid}',-1)">−</button>
+        ${it.qtd}
+        <button class="qty-btn" onclick="alterarQtdAvista('${it.uid}',1)">+</button>
+      </div>
+      <div class="item-mid">
+        <div class="item-name">${escapeHtml(it.nome)}</div>
+      </div>
+      <div class="item-price">${fmtMoeda(it.preco*it.qtd)}</div>
+      <button class="item-remove" onclick="removerItemAvista('${it.uid}')">×</button>
+    </div>
+  `).join('') : '<div style="padding:10px 0;color:var(--ink-soft);font-size:13px;">Nenhum item adicionado ainda.</div>';
+
+  const subtotal = carrinhoAvista.reduce((s,i)=>s+i.preco*i.qtd,0);
+  const taxaValor = taxaAvista ? subtotal*0.10 : 0;
+  const total = subtotal + taxaValor;
+
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>Venda à vista</h2>
+        <div class="meta">Sem abrir comanda — pagamento na hora</div>
+      </div>
+      <button class="ticket-close" onclick="fecharOverlay()">×</button>
+    </div>
+    <div class="ticket-subtabs">
+      <button class="subtab-btn ${abaVendaAvistaAtiva==='cardapio'?'active':''}" onclick="mudarAbaVendaAvista('cardapio')">Cardápio</button>
+      <button class="subtab-btn ${abaVendaAvistaAtiva==='pedido'?'active':''}" onclick="mudarAbaVendaAvista('pedido')">Itens (${carrinhoAvista.length})</button>
+    </div>
+    <div class="ticket-body" style="display:${abaVendaAvistaAtiva==='cardapio'?'block':'none'};">
+      <div class="cat-chips">${chipsHtml}</div>
+      ${avisoTempoEsperaHtml}
+      <div class="menu-list menu-list-full">${menuRowsHtml}</div>
+    </div>
+    <div class="ticket-body" style="display:${abaVendaAvistaAtiva==='pedido'?'block':'none'};">
+      <div class="itens-comanda" style="margin-top:0;border-top:none;padding-top:0;">
+        ${itensHtml}
+      </div>
+    </div>
+    <div class="ticket-totais">
+      <div class="taxa-toggle">
+        <input type="checkbox" id="taxaAvistaCheck" ${taxaAvista?'checked':''} onchange="toggleTaxaAvista(this.checked)">
+        <label for="taxaAvistaCheck">Incluir 10% do garçom</label>
+      </div>
+      <div class="total-row"><span>Subtotal</span><span>${fmtMoeda(subtotal)}</span></div>
+      <div class="total-row"><span>10% do garçom</span><span>${fmtMoeda(taxaValor)}</span></div>
+      <div class="total-row grand"><span>Total</span><span>${fmtMoeda(total)}</span></div>
+    </div>
+    <div class="ticket-actions">
+      <button class="btn btn-close" ${carrinhoAvista.length===0?'disabled':''} onclick="abrirFechamentoAvista()">Receber pagamento</button>
+    </div>
+  `;
+}
+
+function abrirFechamentoAvista(){
+  const subtotal = carrinhoAvista.reduce((s,i)=>s+i.preco*i.qtd,0);
+  const taxaValor = taxaAvista ? subtotal*0.10 : 0;
+  const total = subtotal + taxaValor;
+  formaSelecionada = FORMAS_PAGAMENTO[0];
+  const box = document.getElementById('ticketBox');
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>Finalizar venda à vista</h2>
+        <div class="meta">Total a receber</div>
+      </div>
+      <button class="ticket-close" onclick="fecharOverlay()">×</button>
+    </div>
+    <div class="ticket-totais" style="border-top:none;">
+      <div class="total-row"><span>Subtotal</span><span>${fmtMoeda(subtotal)}</span></div>
+      <div class="total-row"><span>10% do garçom</span><span>${fmtMoeda(taxaValor)}</span></div>
+      <div class="total-row grand"><span>Total</span><span>${fmtMoeda(total)}</span></div>
+    </div>
+    <div class="ticket-body" style="padding-top:0;">
+      <div class="ticket-section-title">Forma de pagamento</div>
+      <div class="cat-chips" id="pagChips">
+        ${FORMAS_PAGAMENTO.map((f,i)=>`<div class="chip ${i===0?'active':''}" data-forma="${f}" onclick="selecionarForma('${f}', ${total})">${f}</div>`).join('')}
+        <div class="chip" data-forma="Combinado" onclick="selecionarForma('Combinado', ${total})">Combinado (dividir)</div>
+      </div>
+      <div id="pagamentoCombinadoBox" style="display:none;margin-top:12px;"></div>
+    </div>
+    <div class="ticket-actions">
+      <button class="btn btn-ghost" onclick="renderVendaAvista()">Voltar</button>
+      <button class="btn btn-close" id="btnConfirmarPagamento" onclick="confirmarVendaAvista(${subtotal},${taxaValor},${total})">Confirmar e imprimir</button>
+    </div>
+  `;
+}
+
+async function confirmarVendaAvista(subtotal, taxaValor, total){
+  if(carrinhoAvista.length === 0) return;
+  const venda = {
+    id: uid(),
+    tipo: 'avista',
+    mesaNumero: null,
+    garcom: 'Balcão',
+    cliente: null,
+    hospede: null,
+    visitante: null,
+    itens: carrinhoAvista.map(i=>({nome:i.nome,qtd:i.qtd,preco:i.preco,obs:i.obs||'',setor:i.setor||'cozinha',categoria:i.categoria||''})),
+    subtotal, taxaServico: taxaValor, total,
+    formaPagamento: formaSelecionada,
+    pagamentoDetalhado: formaSelecionada==='Combinado' ? pagamentoDetalhado : null,
+    fechadaEm: new Date().toISOString()
+  };
+  historico.unshift(venda);
+  await salvarVenda(venda);
+  formaSelecionada = FORMAS_PAGAMENTO[0];
+  pagamentoDetalhado = null;
+  imprimirReciboAvista(venda);
+  carrinhoAvista = [];
+  fecharOverlay();
+  renderizarListaHistorico();
+}
+
+function imprimirReciboAvista(venda){
+  const mesaFake = { tipo:'avista', numero:null, comanda:{ itens:venda.itens, cliente:null, hospede:null, garcom:venda.garcom } };
+  if(isAndroid()){
+    enviarParaImpressao(montarReciboTexto(mesaFake, venda.subtotal, venda.taxaServico, venda.total, venda.formaPagamento), 'principal', ()=>{
+      const printArea = document.getElementById('printArea');
+      printArea.className = larguraImpressao===58 ? 'w58' : '';
+      printArea.innerHTML = montarReciboHtml(mesaFake, venda.subtotal, venda.taxaServico, venda.total, venda.formaPagamento);
+      window.print();
+    });
+    return;
+  }
+  const printArea = document.getElementById('printArea');
+  printArea.className = larguraImpressao===58 ? 'w58' : '';
+  printArea.innerHTML = montarReciboHtml(mesaFake, venda.subtotal, venda.taxaServico, venda.total, venda.formaPagamento);
+  window.print();
+}
+
 function abrirFechamento(){
   const mesa = mesas.find(m=>m.id===mesaAberta);
   const itens = mesa.comanda.itens;
@@ -1515,7 +1724,7 @@ function verComandaFechada(historicoId){
     <div class="ticket-notch"></div>
     <div class="ticket-head">
       <div>
-        <h2>${labelTipo(h.tipo)} ${String(h.mesaNumero).padStart(2,'0')} <span style="font-size:11px;text-transform:none;color:var(--red-dark);font-family:'IBM Plex Mono',monospace;">· fechada</span></h2>
+        <h2>${rotuloCurto(h.tipo, h.mesaNumero)} <span style="font-size:11px;text-transform:none;color:var(--red-dark);font-family:'IBM Plex Mono',monospace;">· fechada</span></h2>
         <div class="meta">${nomePrincipal ? `${h.cliente?'Cliente':'Hóspede'}: ${escapeHtml(nomePrincipal)} · ` : ''}Garçom: ${escapeHtml(h.garcom||'—')} · ${fmtDataHora(h.fechadaEm)}</div>
       </div>
       <button class="ticket-close" onclick="fecharOverlay()">×</button>
@@ -2237,7 +2446,7 @@ function renderizarListaHistorico(){
     list.innerHTML = periodo.slice(0,300).map(h=>`
       <div class="hist-row" onclick="verComandaFechada('${h.id}')" style="cursor:pointer;">
         <div class="esq">
-          <span class="mesa-tag">${labelTipo(h.tipo)} ${String(h.mesaNumero).padStart(2,'0')} · ${h.itens.reduce((s,i)=>s+i.qtd,0)} item(ns)${h._dividida?' · parte da comanda':''}</span>
+          <span class="mesa-tag">${rotuloCurto(h.tipo, h.mesaNumero)} · ${h.itens.reduce((s,i)=>s+i.qtd,0)} item(ns)${h._dividida?' · parte da comanda':''}</span>
           <span class="data">${fmtDataHora(h.fechadaEm)} · Garçom: ${escapeHtml(h.garcom||'—')} · comissão ${fmtMoeda(h.taxaServico||0)}</span>
         </div>
         <span class="pag-tag">${h.formaPagamento}</span>
