@@ -2664,8 +2664,24 @@ function tentarAbrirApp(url, aoFalhar){
   window.location.href = url;
 }
 
+// A impressora térmica não interpreta UTF-8 (acentos saíam como "Filu" em vez
+// de "Filé"). Então, no envio direto pro app de impressão, tiramos os acentos
+// e trocamos símbolos especiais por equivalentes simples em ASCII.
+function textoParaImpressoraTermica(texto){
+  return String(texto)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+    .replace(/[×✕]/g, 'x')
+    .replace(/[–—−]/g, '-')
+    .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+    .replace(/[•·]/g, '-')
+    .replace(/[^\x00-\x7F]/g, '?');
+}
+
 function enviarParaImpressao(texto, chaveImpressora, aoFalharTudo){
-  const base64 = btoa(unescape(encodeURIComponent(texto)));
+  texto = textoParaImpressoraTermica(texto);
+  const base64 = btoa(texto);
   const urlAppProprio = `fazendaparaiso://print?printer=${chaveImpressora}&data=${encodeURIComponent(base64)}`;
   tentarAbrirApp(urlAppProprio, aoFalharTudo);
 }
