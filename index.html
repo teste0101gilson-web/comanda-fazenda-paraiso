@@ -254,6 +254,13 @@ body{
 .menu-row-name{font-size:17px;font-weight:600;line-height:1.25;}
 .menu-row-price{font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--ink-soft);margin-top:2px;}
 .menu-row:active{background:var(--paper-dim);}
+.btn-trocar-mesa{margin-left:auto;margin-right:10px;background:transparent;border:1px solid var(--ink-soft);color:var(--ink);border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;align-self:center;}
+.btn-trocar-mesa:active{background:var(--paper-dim);}
+.troca-grupo{margin-bottom:14px;}
+.troca-grupo h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);}
+.troca-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.troca-btn{min-width:64px;padding:14px 12px;font-size:17px;font-weight:700;border-radius:10px;border:2px solid var(--green);background:transparent;color:var(--ink);cursor:pointer;}
+.troca-btn:active{background:var(--paper-dim);}
 .busca-cardapio{width:100%;box-sizing:border-box;padding:13px 14px;font-size:17px;border:2px solid var(--paper-dim);border-radius:10px;margin-bottom:10px;background:var(--panel);color:var(--ink);font-family:inherit;}
 .busca-cardapio:focus{outline:none;border-color:var(--red);}
 .cat-nome-busca{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;}
@@ -498,6 +505,9 @@ body{
     <span>Bobina da impressora:</span>
     <button class="chip" id="chip58" onclick="setLarguraImpressao(58)">58mm</button>
     <button class="chip" id="chip80" onclick="setLarguraImpressao(80)">80mm</button>
+    <span style="margin-left:10px;">Letra:</span>
+    <button class="chip" id="chipFonteNormal" onclick="setFontePequena(false)">Normal</button>
+    <button class="chip" id="chipFontePequena" onclick="setFontePequena(true)">Pequena</button>
   </div>
 
   <div class="view active" id="view-mesas">
@@ -811,6 +821,25 @@ function carregarConfigImpressora(){
   setLarguraImpressao(80);
 }
 carregarConfigImpressora();
+
+// Letra menor na impressão: usa a fonte pequena da impressora térmica (fonte B),
+// que cabe mais caracteres por linha (cerca de 1/3 a mais).
+let fontePequena = true;
+function setFontePequena(v){
+  fontePequena = !!v;
+  document.getElementById('chipFontePequena').classList.toggle('active', fontePequena);
+  document.getElementById('chipFonteNormal').classList.toggle('active', !fontePequena);
+  try{ localStorage.setItem('fp-fonte-pequena', fontePequena ? '1' : '0'); }catch(e){}
+}
+(function(){
+  let salvo = null;
+  try{ salvo = localStorage.getItem('fp-fonte-pequena'); }catch(e){}
+  setFontePequena(salvo === null ? true : salvo === '1');
+})();
+function colunasImpressao(){
+  const base = larguraImpressao===58 ? 32 : 42;
+  return fontePequena ? Math.floor(base*4/3) : base;
+}
 
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function fmtMoeda(v){ return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -1195,7 +1224,7 @@ async function salvarMesas(extra){
   }catch(e){
     console.error('erro ao salvar mesas', e);
     mostrarErroSalvamento(
-      e.message==='CONFLITO_FECHAMENTO' ? 'Outro garçom lançou itens nesta comanda agora há pouco. Confira a comanda e tente fechar de novo.'
+      e.message==='CONFLITO_FECHAMENTO' ? 'Outro garçom lançou itens nesta comanda agora há pouco. Confira a comanda e tente de novo.'
       : e.code==='permission-denied' ? 'Sem permissão para salvar. Faça login novamente.'
       : 'Não foi possível salvar (sem conexão?). Nada foi gravado — tente de novo.');
     // volta a tela para o que realmente está salvo
@@ -1332,9 +1361,9 @@ document.getElementById('overlay').addEventListener('click', e=>{
 
 function renderFormAbrirMesa(mesa){
   const box = document.getElementById('ticketBox');
-  const campoCliente = mesa.tipo === 'individual' ? `
-      <label>Nome do cliente</label>
-      <input type="text" id="clienteInput" placeholder="Ex: Maria Silva">
+  const campoCliente = mesa.tipo !== 'chale' ? `
+      <label>Nome do cliente${mesa.tipo==='individual' ? '' : ' (opcional)'}</label>
+      <input type="text" id="clienteInput" placeholder="Ex: Maria Silva" autocomplete="off">
   ` : '';
   const camposChale = mesa.tipo === 'chale' ? `
       <label>Hóspede (quem está hospedado)</label>
@@ -1418,6 +1447,69 @@ function filtrarCardapio(v){
   if(aviso) aviso.style.display = semAcentoBusca(v) ? 'none' : 'block';
 }
 
+/* ---------------- TROCAR DE MESA ---------------- */
+// Move a comanda aberta para outra mesa/deck/quiosque/chalé que esteja livre.
+// Os itens (e o que já foi impresso) vão junto, então nada é impresso de novo.
+function abrirTrocaMesa(){
+  const orig = mesas.find(m=>m.id===mesaAberta);
+  if(!orig || !orig.comanda) return;
+  const ordem = ['mesa','deck','quiosque','chale'];
+  const gruposHtml = ordem.map(tipo=>{
+    const livres = mesas.filter(m=>m.tipo===tipo && m.id!==orig.id && m.status==='livre' && !m.comanda)
+                        .sort((a,b)=>a.numero-b.numero);
+    if(!livres.length) return '';
+    const botoes = livres.map(m=>`<button class="troca-btn" onclick="confirmarTrocaMesa('${m.id}')">${String(m.numero).padStart(2,'0')}</button>`).join('');
+    return `<div class="troca-grupo"><h4>${labelTipo(tipo)}s livres</h4><div class="troca-grid">${botoes}</div></div>`;
+  }).join('') || '<div class="empty-msg">Não há nenhuma mesa livre no momento.</div>';
+  const box = document.getElementById('ticketBox');
+  box.innerHTML = `
+    <div class="ticket-notch"></div>
+    <div class="ticket-head">
+      <div>
+        <h2>Trocar de mesa</h2>
+        <div class="meta">Comanda de ${rotuloUnidade(orig)}${orig.comanda.cliente ? ' · ' + escapeHtml(orig.comanda.cliente) : ''}</div>
+      </div>
+      <button class="ticket-close" onclick="fecharOverlay()">×</button>
+    </div>
+    <div class="ticket-body" style="display:block;">
+      <p style="font-size:14px;color:var(--ink-soft);margin:0 0 14px;">Escolha para onde levar esta comanda:</p>
+      ${gruposHtml}
+      <button class="btn" style="width:100%;margin-top:6px;" onclick="renderTicket()">Voltar para a comanda</button>
+    </div>
+  `;
+}
+
+async function confirmarTrocaMesa(destinoId){
+  const orig = mesas.find(m=>m.id===mesaAberta);
+  const dest = mesas.find(m=>m.id===destinoId);
+  if(!orig || !orig.comanda) return;
+  if(!dest || dest.status!=='livre' || dest.comanda){
+    mostrarErroSalvamento('Esse local acabou de ser ocupado. Escolha outro.');
+    abrirTrocaMesa();
+    return;
+  }
+  if(!confirm(`Mover a comanda de ${rotuloUnidade(orig)} para ${rotuloUnidade(dest)}?`)) return;
+  const nomeOrigem = rotuloUnidade(orig);
+  dest.comanda = orig.comanda;
+  dest.status = orig.status;
+  if(orig.tipo === 'individual'){
+    mesas = mesas.filter(m=>m.id!==orig.id);
+  } else {
+    orig.comanda = null;
+    orig.status = 'livre';
+  }
+  const ok = await salvarMesas();
+  if(!ok) return;
+  mesaAberta = dest.id;
+  renderMesas();
+  renderCozinha();
+  mostrarErroSalvamento('Comanda movida de ' + nomeOrigem + ' para ' + rotuloUnidade(dest) + ' ✓');
+  categoriaAtiva = CATEGORIAS[0];
+  buscaCardapio = '';
+  abaTicketAtiva = 'cardapio';
+  renderTicket();
+}
+
 /* ---------------- TICKET / COMANDA ---------------- */
 function renderTicket(){
   const mesa = mesas.find(m=>m.id===mesaAberta);
@@ -1464,6 +1556,7 @@ function renderTicket(){
         <h2>${rotuloUnidade(mesa)}</h2>
         <div class="meta">${mesa.comanda.cliente ? `Cliente: ${escapeHtml(mesa.comanda.cliente)} · ` : ''}${mesa.comanda.hospede ? `Hóspede: ${escapeHtml(mesa.comanda.hospede)}${mesa.comanda.visitante ? ' · Visitante: '+escapeHtml(mesa.comanda.visitante) : ''} · ` : ''}Garçom: ${escapeHtml(mesa.comanda.garcom)} · aberta ${fmtHora(mesa.comanda.abertaEm)}</div>
       </div>
+      <button class="btn-trocar-mesa" onclick="abrirTrocaMesa()">⇄ Trocar mesa</button>
       <button class="ticket-close" onclick="fecharOverlay()">×</button>
     </div>
     <div class="ticket-subtabs">
@@ -2289,7 +2382,8 @@ function renderGraficoVendas(periodo){
 
 /* ---------------- DIVISAO DO CAIXA ENTRE OS DOIS DONOS ----------------
    Regra combinada com o Gilson:
-   - Pesca: sempre do Adriano, todos os dias da semana (seg a dom).
+   - Sempre do Adriano (seg a dom): pesca (entrada), pesca infantil, saco de ceva,
+     ração de ceva e marmita. Os outros itens de Pesca seguem a regra do dia.
    - Fora da Pesca: de segunda a sexta é tudo do Adriano; sábado e domingo
      é tudo do Anderson (e o Anderson nunca entra na Pesca).
    Uma mesma venda pode ter itens de dono diferente (ex: comanda de sábado
@@ -2307,8 +2401,22 @@ function diaSemanaLocal(iso){
   return new Date(iso).getDay(); // 0=domingo ... 6=sábado
 }
 
+// Itens que são SEMPRE do Adriano, qualquer dia da semana (vale pelo nome do item):
+//  - Pesca (entrada), Pesca infantil, saco de ceva 25 kg, ração de ceva e marmita.
+// Todo o resto (inclusive os outros itens da categoria Pesca, como boia, linha, massa...)
+// segue o dia: seg-sex Adriano, sáb-dom Anderson.
+const NOMES_FIXOS_ADRIANO = [
+  /marmita/,
+  /pesca.*(entrada|infantil)|(entrada|infantil).*pesca/,
+  /saco (de )?ceva/,
+  /racao (de )?ceva/
+];
+function itemFixoDoAdriano(item){
+  const nome = String(item.nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return NOMES_FIXOS_ADRIANO.some(re=>re.test(nome));
+}
 function donoDoItem(item, diaSemana){
-  if((item.categoria||'') === 'Pesca') return 'adriano';
+  if(itemFixoDoAdriano(item)) return 'adriano';
   const fimDeSemana = (diaSemana === 0 || diaSemana === 6);
   return fimDeSemana ? 'anderson' : 'adriano';
 }
@@ -2449,7 +2557,7 @@ function renderRelatorioVendas(){
 }
 
 function montarRelatorioTexto(periodo, dimensao){
-  const L = larguraImpressao===58 ? 32 : 42;
+  const L = colunasImpressao();
   const linhaSep = '-'.repeat(L);
   const rotuloDimensao = dimensao==='local'?'POR LOCAL':dimensao==='setor'?'POR SETOR':dimensao==='pagamento'?'POR FORMA DE PAGAMENTO':dimensao==='item'?'DETALHADO POR ITEM':'POR CATEGORIA';
   const linhas = calcularRelatorioAgrupado(periodo, dimensao);
@@ -2529,7 +2637,7 @@ function renderResumoFechamento(){
 }
 
 function montarResumoFechamentoTexto(periodo){
-  const L = larguraImpressao===58 ? 32 : 42;
+  const L = colunasImpressao();
   const linhaSep = '-'.repeat(L);
   const g = gruposResumoFechamento(periodo);
   const totalGeral = periodo.reduce((s,h)=>s+h.total,0);
@@ -2610,7 +2718,7 @@ function renderizarListaHistorico(){
 
   document.getElementById('avisoDonoCaixa').innerHTML = donoCaixaAtivo === 'adriano'
     ? `<strong>Caixa de ${NOMES_DONO.adriano}</strong> — tudo de segunda a sexta, + Pesca em todos os dias da semana (inclusive fim de semana).`
-    : `<strong>Caixa de ${NOMES_DONO.anderson}</strong> — vendas de sábado e domingo (a Pesca nunca entra aqui, é sempre do Adriano).`;
+    : `<strong>Caixa de ${NOMES_DONO.anderson}</strong> — vendas de sábado e domingo (entrada/pesca infantil, saco e ração de ceva e marmita nunca entram aqui, são sempre do Adriano).`;
 
   const hojeISO = dataLocalISO(new Date().toISOString());
   let rotulo = 'no período (todos os dias)';
@@ -2749,7 +2857,7 @@ function linhaTexto(esquerda, direita, largura){
 }
 
 function montarReciboTexto(mesa, subtotal, taxaValor, total, forma){
-  const L = larguraImpressao===58 ? 32 : 42; // colunas aproximadas por bobina
+  const L = colunasImpressao(); // colunas aproximadas por bobina e tamanho de letra
   const linha = '-'.repeat(L);
   let t = '';
   t += 'FAZENDA PARAISO\n';
@@ -2774,7 +2882,7 @@ function montarReciboTexto(mesa, subtotal, taxaValor, total, forma){
 }
 
 function montarProducaoSetorTexto(mesa, setor, itensSetor){
-  const L = larguraImpressao===58 ? 32 : 42;
+  const L = colunasImpressao();
   const linha = '-'.repeat(L);
   itensSetor = itensSetor || mesa.comanda.itens.filter(i=>(i.setor||'cozinha')===setor);
   const nomePrincipal = mesa.comanda.cliente || mesa.comanda.hospede;
@@ -2828,6 +2936,8 @@ function textoParaImpressoraTermica(texto){
 
 function enviarParaImpressao(texto, chaveImpressora, aoFalharTudo){
   texto = textoParaImpressoraTermica(texto);
+  // ESC ! n  -> n=1 fonte pequena (B), n=0 fonte normal (A)
+  texto = '\x1B!' + (fontePequena ? '\x01' : '\x00') + texto;
   const base64 = btoa(texto);
   const urlAppProprio = `fazendaparaiso://print?printer=${chaveImpressora}&data=${encodeURIComponent(base64)}`;
   tentarAbrirApp(urlAppProprio, aoFalharTudo);
