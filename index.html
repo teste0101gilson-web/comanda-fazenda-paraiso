@@ -468,6 +468,21 @@ body{
   .print-total{font-size:12.5px;font-weight:700;}
   .print-foot{text-align:center;font-size:9.5px;margin-top:8px;}
 }
+/* ---- Calculadora ---- */
+.calc-fundo{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(42,33,24,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px;}
+.calc-fundo.aberta{display:flex;}
+.calc-box{width:100%;max-width:320px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 14px 40px rgba(0,0,0,.35);}
+.calc-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-weight:700;}
+.calc-x{border:none;background:var(--panel-2);border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;color:var(--text);}
+.calc-visor{background:var(--ink);color:var(--paper);border-radius:10px;padding:10px 14px;text-align:right;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;}
+.calc-visor .exp{font-size:13px;min-height:18px;opacity:.7;overflow:hidden;white-space:nowrap;}
+.calc-visor .val{font-size:30px;font-weight:600;overflow:hidden;white-space:nowrap;}
+.calc-teclas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.calc-teclas button{padding:16px 0;font-size:20px;font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);cursor:pointer;}
+.calc-teclas button:active{filter:brightness(.92);}
+.calc-teclas .op{background:#E8DCC0;}
+.calc-teclas .ac{background:#F2D6D0;}
+.calc-teclas .ig{background:var(--green);border-color:var(--green);color:#fff;}
 </style>
 <style id="pagePrintStyle">@page{size:80mm auto;margin:2mm;}</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -548,6 +563,7 @@ body{
     </div>
     <button class="btn btn-primary" id="btnNovaIndividual" style="display:none;max-width:260px;margin-bottom:16px;" onclick="abrirComandaIndividual()">+ Nova comanda individual</button>
     <button class="btn btn-primary" style="max-width:220px;margin-bottom:16px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);" onclick="abrirVendaAvista()">⚡ Venda à vista</button>
+    <button class="btn btn-primary" style="max-width:220px;margin-bottom:16px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);" onclick="abrirCalculadora()">🧮 Calculadora</button>
     <div class="mesas-grid" id="mesasGrid"></div>
   </div>
 
@@ -653,6 +669,20 @@ body{
     <div id="cancelamentosList"></div>
   </div>
 
+</div>
+
+<div class="calc-fundo" id="calcFundo" onclick="if(event.target===this)fecharCalculadora()">
+  <div class="calc-box">
+    <div class="calc-topo"><span>🧮 Calculadora</span><button class="calc-x" onclick="fecharCalculadora()">✕</button></div>
+    <div class="calc-visor"><div class="exp" id="calcExp"></div><div class="val" id="calcVal">0</div></div>
+    <div class="calc-teclas">
+      <button class="ac" onclick="calcTecla('C')">C</button><button class="op" onclick="calcTecla('⌫')">⌫</button><button class="op" onclick="calcTecla('%')">%</button><button class="op" onclick="calcTecla('/')">÷</button>
+      <button onclick="calcTecla('7')">7</button><button onclick="calcTecla('8')">8</button><button onclick="calcTecla('9')">9</button><button class="op" onclick="calcTecla('*')">×</button>
+      <button onclick="calcTecla('4')">4</button><button onclick="calcTecla('5')">5</button><button onclick="calcTecla('6')">6</button><button class="op" onclick="calcTecla('-')">−</button>
+      <button onclick="calcTecla('1')">1</button><button onclick="calcTecla('2')">2</button><button onclick="calcTecla('3')">3</button><button class="op" onclick="calcTecla('+')">+</button>
+      <button onclick="calcTecla('0')" style="grid-column:span 2;">0</button><button onclick="calcTecla(',')">,</button><button class="ig" onclick="calcTecla('=')">=</button>
+    </div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay">
@@ -2515,6 +2545,51 @@ function construirVendaDono(venda, dono){
 function construirVendasPorDono(vendas, dono){
   return vendas.map(v=>construirVendaDono(v, dono)).filter(Boolean);
 }
+
+/* ---------------- CALCULADORA ---------------- */
+let calcAtual='0', calcAnterior=null, calcOp=null, calcNovo=true;
+function calcFmt(n){ if(!isFinite(n)) return 'Erro'; return String(parseFloat(Number(n).toPrecision(12))).replace('.',','); }
+function calcNum(t){ return parseFloat(String(t).replace(',','.')) || 0; }
+function calcAplicar(a,b,op){ return op==='+'?a+b : op==='-'?a-b : op==='*'?a*b : op==='/'?(b===0?NaN:a/b) : b; }
+function calcRender(){
+  const simb={'+':'+','-':'−','*':'×','/':'÷'};
+  document.getElementById('calcVal').textContent = calcAtual;
+  document.getElementById('calcExp').textContent = calcOp ? calcFmt(calcAnterior)+' '+simb[calcOp] : '';
+}
+function calcTecla(t){
+  if(calcAtual==='Erro' && t!=='C') { calcAtual='0'; calcNovo=true; }
+  if(/^[0-9]$/.test(t)){
+    calcAtual = (calcNovo || calcAtual==='0') ? t : (calcAtual.length<14 ? calcAtual+t : calcAtual);
+    calcNovo=false;
+  } else if(t===','||t==='.'){
+    if(calcNovo){ calcAtual='0,'; calcNovo=false; }
+    else if(!calcAtual.includes(',')) calcAtual+=',';
+  } else if(t==='C'){
+    calcAtual='0'; calcAnterior=null; calcOp=null; calcNovo=true;
+  } else if(t==='⌫'){
+    if(!calcNovo){ calcAtual = calcAtual.length>1 ? calcAtual.slice(0,-1) : '0'; if(calcAtual==='-') calcAtual='0'; }
+  } else if(t==='%'){
+    calcAtual = calcFmt(calcNum(calcAtual)/100); calcNovo=true;
+  } else if('+-*/'.includes(t)){
+    if(calcOp && !calcNovo){ calcAnterior = calcAplicar(calcAnterior, calcNum(calcAtual), calcOp); calcAtual = calcFmt(calcAnterior); }
+    else calcAnterior = calcNum(calcAtual);
+    calcOp=t; calcNovo=true;
+  } else if(t==='='||t==='Enter'){
+    if(calcOp){ const r = calcAplicar(calcAnterior, calcNum(calcAtual), calcOp); calcAtual=calcFmt(r); calcOp=null; calcAnterior=null; calcNovo=true; }
+  }
+  calcRender();
+}
+function abrirCalculadora(){ document.getElementById('calcFundo').classList.add('aberta'); calcRender(); }
+function fecharCalculadora(){ document.getElementById('calcFundo').classList.remove('aberta'); }
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('calcFundo').classList.contains('aberta')) return;
+  if(e.key==='Escape'){ fecharCalculadora(); return; }
+  const k=e.key;
+  if(/^[0-9+\-*\/,.%]$/.test(k)) calcTecla(k);
+  else if(k==='Enter'||k==='='){ e.preventDefault(); calcTecla('='); }
+  else if(k==='Backspace') calcTecla('⌫');
+  else if(k==='Delete'||k==='c'||k==='C') calcTecla('C');
+});
 
 /* ---------------- O QUE FOI VENDIDO (itens, pra planilha) ----------------
    Lista simples: cada item com quantidade, valor unitário e total, separada por
