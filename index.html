@@ -400,6 +400,30 @@ body{
 .hist-row .mesa-tag{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);}
 .hist-row .data{font-size:11.5px;color:var(--text-dim);}
 .hist-row .valor{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;}
+/* ---- "O que foi vendido": tabela de itens ---- */
+.iv-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+.iv-chips .chip{padding:9px 14px;font-size:14px;}
+.iv-opcoes{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px;}
+.iv-opcoes label.iv-check{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);cursor:pointer;}
+.iv-opcoes label.iv-check input{width:18px;height:18px;}
+.iv-btn{padding:10px 14px;font-size:14px;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);cursor:pointer;}
+.iv-btn.destaque{background:var(--green);border-color:var(--green);color:#fff;}
+.iv-tabela{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);}
+.iv-lin{display:grid;grid-template-columns:minmax(0,1fr) 46px 74px 88px;gap:6px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--line);font-size:14px;}
+.iv-lin:last-child{border-bottom:none;}
+.iv-lin .n{font-weight:600;line-height:1.25;word-break:break-word;}
+.iv-lin .q,.iv-lin .u,.iv-lin .t{font-family:'IBM Plex Mono',monospace;text-align:right;}
+.iv-lin .q{font-weight:700;font-size:16px;}
+.iv-lin .u{color:var(--text-dim);font-size:12.5px;}
+.iv-lin .t{font-weight:600;}
+.iv-cab{background:var(--panel-2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);font-weight:700;}
+.iv-cab .q,.iv-cab .u,.iv-cab .t{font-family:inherit;font-size:11px;font-weight:700;color:var(--text-dim);}
+.iv-grupo{background:var(--panel-2);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;}
+.iv-grupo .q,.iv-grupo .t{font-size:13px;}
+.iv-dia{background:var(--ink);color:var(--paper);font-weight:700;font-size:14px;}
+.iv-total{background:var(--panel-2);font-weight:700;}
+.iv-resumo{display:flex;gap:10px;margin:0 0 12px;flex-wrap:wrap;}
+.iv-nota{font-size:12.5px;color:var(--text-dim);margin:8px 2px 0;line-height:1.4;}
 .pag-tag{font-size:10.5px;text-transform:uppercase;padding:3px 8px;border-radius:5px;background:var(--panel-2);color:var(--text-dim);}
 
 @media (max-width:520px){
@@ -592,6 +616,9 @@ body{
       <div class="hist-card"><div class="lbl" id="lblQtdPeriodo">Comandas fechadas hoje</div><div class="val" id="histQtdHoje">0</div></div>
       <div class="hist-card"><div class="lbl" id="lblTotalPeriodo">Faturamento hoje</div><div class="val" id="histTotalHoje">R$ 0,00</div></div>
     </div>
+
+    <div class="ticket-section-title" style="color:var(--text-dim);">O que foi vendido</div>
+    <div id="itensVendidosBox" style="margin-bottom:26px;"></div>
 
     <div class="ticket-section-title" style="color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
       <span>Relatório de vendas</span>
@@ -2488,6 +2515,158 @@ function construirVendasPorDono(vendas, dono){
   return vendas.map(v=>construirVendaDono(v, dono)).filter(Boolean);
 }
 
+/* ---------------- O QUE FOI VENDIDO (itens, pra planilha) ----------------
+   Lista simples: cada item com quantidade, valor unitário e total, separada por
+   categoria. Dá pra filtrar por categoria (ex.: só Porções), separar dia a dia,
+   copiar pra colar direto no Excel ou baixar a planilha (.csv).
+   Os valores são os dos itens, sem os 10% do garçom. */
+let ivCategoria = 'Todas';
+let ivPorDia = false;
+
+function categoriaDoItemVendido(item){
+  if(item.categoria) return item.categoria;
+  // vendas antigas sem categoria gravada: procura pelo nome no cardápio atual
+  const alvo = semAcentoBusca(item.nome);
+  const c = cardapio.find(x=>semAcentoBusca(x.nome)===alvo);
+  return c ? c.categoria : 'Sem categoria';
+}
+
+function calcularItensVendidos(periodo){
+  const mapa = {};
+  periodo.forEach(venda=>{
+    const dataISO = ivPorDia ? dataLocalISO(venda.fechadaEm) : '';
+    (venda.itens||[]).forEach(it=>{
+      const categoria = categoriaDoItemVendido(it);
+      const preco = Number(it.preco)||0;
+      const chave = [dataISO, categoria, it.nome, preco.toFixed(2)].join('|');
+      if(!mapa[chave]) mapa[chave] = {dataISO, categoria, nome: it.nome, preco, qtd:0, total:0};
+      mapa[chave].qtd += it.qtd;
+      mapa[chave].total += preco * it.qtd;
+    });
+  });
+  const ordemCat = c => { const i = CATEGORIAS.indexOf(c); return i < 0 ? 99 : i; };
+  return Object.values(mapa).sort((a,b)=>
+    a.dataISO.localeCompare(b.dataISO) ||
+    ordemCat(a.categoria) - ordemCat(b.categoria) ||
+    a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+function linhasItensVendidosFiltradas(){
+  const todas = calcularItensVendidos(window.periodoAtualRelatorio || []);
+  return todas.filter(r=> ivCategoria==='Todas' || r.categoria===ivCategoria);
+}
+
+function dataBR(iso){
+  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR');
+}
+function diaSemanaCurto(iso){
+  return ['dom','seg','ter','qua','qui','sex','sáb'][new Date(iso + 'T12:00:00').getDay()];
+}
+
+function ivSetCategoria(c){ ivCategoria = c; renderItensVendidos(); }
+function ivSetPorDia(v){ ivPorDia = !!v; renderItensVendidos(); }
+
+function renderItensVendidos(){
+  const box = document.getElementById('itensVendidosBox');
+  if(!box) return;
+  const periodo = window.periodoAtualRelatorio || [];
+  if(periodo.length === 0){
+    box.innerHTML = '<div class="empty-msg">Sem vendas nesse período.</div>';
+    return;
+  }
+  const todas = calcularItensVendidos(periodo);
+  const cats = ['Todas', ...CATEGORIAS];
+  if(todas.some(r=>r.categoria==='Sem categoria')) cats.push('Sem categoria');
+  if(!cats.includes(ivCategoria)) ivCategoria = 'Todas';
+  const linhas = todas.filter(r=> ivCategoria==='Todas' || r.categoria===ivCategoria);
+
+  const chips = cats.map(c=>`<button class="chip ${c===ivCategoria?'active':''}" data-cat="${escapeHtml(c)}" onclick="ivSetCategoria(this.dataset.cat)">${escapeHtml(c)}</button>`).join('');
+  const totQtd = linhas.reduce((s,r)=>s+r.qtd,0);
+  const totValor = linhas.reduce((s,r)=>s+r.total,0);
+
+  let tabela = '';
+  if(linhas.length === 0){
+    tabela = '<div class="empty-msg">Nada vendido nessa categoria no período.</div>';
+  } else {
+    tabela += '<div class="iv-lin iv-cab"><div class="n">Item</div><div class="q">Qtd.</div><div class="u">Unit.</div><div class="t">Total</div></div>';
+    let diaAtual = null, catAtual = null;
+    // subtotal de cada grupo (dia + categoria)
+    const subtotais = {};
+    linhas.forEach(r=>{
+      const k = r.dataISO + '|' + r.categoria;
+      if(!subtotais[k]) subtotais[k] = {qtd:0, valor:0};
+      subtotais[k].qtd += r.qtd; subtotais[k].valor += r.total;
+    });
+    linhas.forEach(r=>{
+      if(ivPorDia && r.dataISO !== diaAtual){
+        diaAtual = r.dataISO; catAtual = null;
+        tabela += `<div class="iv-lin iv-dia"><div class="n" style="grid-column:1/-1;">${dataBR(r.dataISO)} (${diaSemanaCurto(r.dataISO)})</div></div>`;
+      }
+      if(r.categoria !== catAtual){
+        catAtual = r.categoria;
+        const sub = subtotais[r.dataISO + '|' + r.categoria];
+        tabela += `<div class="iv-lin iv-grupo"><div class="n">${escapeHtml(r.categoria)}</div><div class="q">${sub.qtd}</div><div class="u"></div><div class="t">${fmtMoeda(sub.valor)}</div></div>`;
+      }
+      tabela += `<div class="iv-lin"><div class="n">${escapeHtml(r.nome)}</div><div class="q">${r.qtd}</div><div class="u">${fmtMoeda(r.preco)}</div><div class="t">${fmtMoeda(r.total)}</div></div>`;
+    });
+    tabela += `<div class="iv-lin iv-total"><div class="n">TOTAL${ivCategoria==='Todas'?'':' — '+escapeHtml(ivCategoria)}</div><div class="q">${totQtd}</div><div class="u"></div><div class="t">${fmtMoeda(totValor)}</div></div>`;
+  }
+
+  box.innerHTML = `
+    <div class="iv-chips">${chips}</div>
+    <div class="iv-opcoes">
+      <label class="iv-check"><input type="checkbox" ${ivPorDia?'checked':''} onchange="ivSetPorDia(this.checked)"> Separar dia a dia</label>
+      <button class="iv-btn destaque" onclick="copiarItensVendidos()">📋 Copiar para colar no Excel</button>
+      <button class="iv-btn" onclick="baixarItensVendidosCsv()">⬇ Baixar planilha (.csv)</button>
+    </div>
+    <div class="iv-tabela">${tabela}</div>
+    <div class="iv-nota">${escapeHtml('Caixa - ' + (NOMES_DONO[donoCaixaAtivo]||''))} · ${escapeHtml(window.rotuloAtualRelatorio || '')}. Valores dos itens, sem os 10% do garçom. Se um item foi vendido por preços diferentes, aparece uma linha para cada preço.</div>
+  `;
+}
+
+// Tabela em formato de planilha: cabeçalho + uma linha por item (números sem "R$",
+// com vírgula, pra o Excel em português reconhecer como número).
+function matrizItensVendidos(){
+  const rows = linhasItensVendidosFiltradas();
+  const num = n => Number(n).toFixed(2).replace('.', ',');
+  const cab = [...(ivPorDia ? ['Data'] : []), 'Categoria', 'Item', 'Quantidade', 'Valor unitário (R$)', 'Total (R$)'];
+  const corpo = rows.map(r=>[...(ivPorDia ? [dataBR(r.dataISO)] : []), r.categoria, r.nome, String(r.qtd), num(r.preco), num(r.total)]);
+  return [cab, ...corpo];
+}
+
+async function copiarItensVendidos(){
+  const m = matrizItensVendidos();
+  if(m.length < 2){ mostrarErroSalvamento('Não há itens para copiar nesse filtro.'); return; }
+  const texto = m.map(l=>l.join('\t')).join('\n');
+  try{
+    await navigator.clipboard.writeText(texto);
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e2){}
+    document.body.removeChild(ta);
+  }
+  mostrarErroSalvamento('Copiado! Abra o Excel e cole (Ctrl+V) na célula A1. ✓');
+}
+
+function baixarItensVendidosCsv(){
+  const m = matrizItensVendidos();
+  if(m.length < 2){ mostrarErroSalvamento('Não há itens para baixar nesse filtro.'); return; }
+  const esc = c => /[;"\n\r]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+  const csv = '﻿' + m.map(l=>l.map(esc).join(';')).join('\r\n');
+  const periodo = (window.rotuloAtualRelatorio || 'periodo').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const cat = ivCategoria === 'Todas' ? 'todas-categorias' : ivCategoria.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
+  const nome = `vendas-${donoCaixaAtivo}-${cat}-${periodo}.csv`;
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  mostrarErroSalvamento('Planilha gerada: ' + nome);
+}
+
 /* ---------------- RELATORIO DE VENDAS AGRUPADO ---------------- */
 function calcularRelatorioAgrupado(periodo, dimensao){
   const grupos = {};
@@ -2720,7 +2899,7 @@ function renderizarListaHistorico(){
   });
 
   document.getElementById('avisoDonoCaixa').innerHTML = donoCaixaAtivo === 'adriano'
-    ? `<strong>Caixa de ${NOMES_DONO.adriano}</strong> — tudo de segunda a sexta, + Pesca em todos os dias da semana (inclusive fim de semana).`
+    ? `<strong>Caixa de ${NOMES_DONO.adriano}</strong> — tudo de segunda a sexta, + entrada/pesca infantil, saco e ração de ceva e marmita em todos os dias (inclusive fim de semana).`
     : `<strong>Caixa de ${NOMES_DONO.anderson}</strong> — vendas de sábado e domingo (entrada/pesca infantil, saco e ração de ceva e marmita nunca entram aqui, são sempre do Adriano).`;
 
   const hojeISO = dataLocalISO(new Date().toISOString());
@@ -2742,6 +2921,7 @@ function renderizarListaHistorico(){
   renderGraficoVendas(periodo);
   window.periodoAtualRelatorio = periodo;
   window.rotuloAtualRelatorio = rotulo;
+  renderItensVendidos();
   renderRelatorioVendas();
   renderResumoFechamento();
 
