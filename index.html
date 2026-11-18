@@ -470,6 +470,7 @@ body{
 }
 </style>
 <style id="pagePrintStyle">@page{size:80mm auto;margin:2mm;}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -2617,7 +2618,7 @@ function renderItensVendidos(){
     <div class="iv-opcoes">
       <label class="iv-check"><input type="checkbox" ${ivPorDia?'checked':''} onchange="ivSetPorDia(this.checked)"> Separar dia a dia</label>
       <button class="iv-btn destaque" onclick="copiarItensVendidos()">📋 Copiar para colar no Excel</button>
-      <button class="iv-btn" onclick="baixarItensVendidosCsv()">⬇ Baixar planilha (.csv)</button>
+      <button class="iv-btn" onclick="baixarItensVendidosXlsx()">⬇ Baixar planilha (Excel .xlsx)</button>
     </div>
     <div class="iv-tabela">${tabela}</div>
     <div class="iv-nota">${escapeHtml('Caixa - ' + (NOMES_DONO[donoCaixaAtivo]||''))} · ${escapeHtml(window.rotuloAtualRelatorio || '')}. Valores dos itens, sem os 10% do garçom. Se um item foi vendido por preços diferentes, aparece uma linha para cada preço.</div>
@@ -2649,6 +2650,28 @@ async function copiarItensVendidos(){
   }
   mostrarErroSalvamento('Copiado! Abra o Excel e cole (Ctrl+V) na célula A1. ✓');
 }
+
+function baixarItensVendidosXlsx(){
+  const rows = linhasItensVendidasFiltradasSafe();
+  if(rows.length === 0){ mostrarErroSalvamento('Não há itens para baixar nesse filtro.'); return; }
+  if(typeof XLSX === 'undefined'){ baixarItensVendidosCsv(); return; }
+  const cab = [...(ivPorDia ? ['Data'] : []), 'Categoria', 'Item', 'Quantidade', 'Valor unitário (R$)', 'Total (R$)'];
+  const corpo = rows.map(r=>[...(ivPorDia ? [dataBR(r.dataISO)] : []), r.categoria, r.nome, r.qtd, Number(r.preco.toFixed(2)), Number(r.total.toFixed(2))]);
+  const ws = XLSX.utils.aoa_to_sheet([cab, ...corpo]);
+  const off = ivPorDia ? 1 : 0;
+  ws['!cols'] = [...(ivPorDia ? [{wch:12}] : []), {wch:20}, {wch:42}, {wch:12}, {wch:20}, {wch:14}];
+  for(let i=1;i<=corpo.length;i++){
+    [off+3, off+4].forEach(c=>{ const cel = ws[XLSX.utils.encode_cell({r:i,c})]; if(cel) cel.z = '#,##0.00'; });
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vendas');
+  const periodo = (window.rotuloAtualRelatorio || 'periodo').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const cat = ivCategoria === 'Todas' ? 'todas-categorias' : ivCategoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase();
+  const nome = `vendas-${donoCaixaAtivo}-${cat}-${periodo}.xlsx`;
+  XLSX.writeFile(wb, nome);
+  mostrarErroSalvamento('Planilha gerada: ' + nome);
+}
+function linhasItensVendidasFiltradasSafe(){ return linhasItensVendidosFiltradas(); }
 
 function baixarItensVendidosCsv(){
   const m = matrizItensVendidos();
