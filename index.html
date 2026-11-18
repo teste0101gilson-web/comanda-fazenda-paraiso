@@ -2552,12 +2552,27 @@ function calcularItensVendidos(periodo){
     a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
-// Para a planilha: sempre uma linha por dia + item (assim a coluna Data permite filtrar no Excel).
+// Para a planilha: uma linha por comanda + item (com data e nome da comanda), pra filtrar no Excel.
+function nomeComandaVenda(v){
+  const base = rotuloUnidade({tipo:v.tipo, numero:v.mesaNumero});
+  const pessoa = v.cliente || v.hospede || '';
+  return pessoa ? base + ' - ' + pessoa : base;
+}
 function linhasItensVendidosFiltradas(){
-  const antes = ivPorDia; ivPorDia = true;
-  let todas;
-  try{ todas = calcularItensVendidos(window.periodoAtualRelatorio || []); } finally { ivPorDia = antes; }
-  return todas.filter(r=> ivCategoria==='Todas' || r.categoria===ivCategoria);
+  const linhas = [];
+  [...(window.periodoAtualRelatorio || [])]
+    .sort((x,y)=>String(x.fechadaEm).localeCompare(String(y.fechadaEm)))
+    .forEach(v=>{
+      const mapa = {};
+      (v.itens||[]).forEach(it=>{
+        const preco = Number(it.preco)||0;
+        const k = it.nome + '|' + preco.toFixed(2);
+        if(!mapa[k]) mapa[k] = {dataISO:dataLocalISO(v.fechadaEm), comanda:nomeComandaVenda(v), categoria:categoriaDoItemVendido(it), nome:it.nome, preco, qtd:0, total:0};
+        mapa[k].qtd += it.qtd; mapa[k].total += preco*it.qtd;
+      });
+      Object.values(mapa).forEach(r=>linhas.push(r));
+    });
+  return linhas.filter(r=> ivCategoria==='Todas' || r.categoria===ivCategoria);
 }
 
 function dataBR(iso){
@@ -2633,8 +2648,8 @@ function renderItensVendidos(){
 function matrizItensVendidos(){
   const rows = linhasItensVendidosFiltradas();
   const num = n => Number(n).toFixed(2).replace('.', ',');
-  const cab = ['Data', 'Categoria', 'Item', 'Quantidade', 'Valor unitário (R$)', 'Total (R$)'];
-  const corpo = rows.map(r=>[dataBR(r.dataISO), r.categoria, r.nome, String(r.qtd), num(r.preco), num(r.total)]);
+  const cab = ['Data', 'Comanda', 'Categoria', 'Item', 'Quantidade', 'Valor unitário (R$)', 'Total (R$)'];
+  const corpo = rows.map(r=>[dataBR(r.dataISO), r.comanda, r.categoria, r.nome, String(r.qtd), num(r.preco), num(r.total)]);
   return [cab, ...corpo];
 }
 
@@ -2658,12 +2673,12 @@ function baixarItensVendidosXlsx(){
   const rows = linhasItensVendidasFiltradasSafe();
   if(rows.length === 0){ mostrarErroSalvamento('Não há itens para baixar nesse filtro.'); return; }
   if(typeof XLSX === 'undefined'){ baixarItensVendidosCsv(); return; }
-  const cab = ['Data', 'Categoria', 'Item', 'Quantidade', 'Valor unitário (R$)', 'Total (R$)'];
-  const corpo = rows.map(r=>[new Date(r.dataISO + 'T12:00:00'), r.categoria, r.nome, r.qtd, Number(r.preco.toFixed(2)), Number(r.total.toFixed(2))]);
+  const cab = ['Data', 'Comanda', 'Categoria', 'Item', 'Quantidade', 'Valor unitário (R$)', 'Total (R$)'];
+  const corpo = rows.map(r=>[new Date(r.dataISO + 'T12:00:00'), r.comanda, r.categoria, r.nome, r.qtd, Number(r.preco.toFixed(2)), Number(r.total.toFixed(2))]);
   const ws = XLSX.utils.aoa_to_sheet([cab, ...corpo], {cellDates:true});
-  const off = 1;
-  ws['!autofilter'] = {ref: XLSX.utils.encode_range({r:0,c:0},{r:corpo.length,c:5})};
-  ws['!cols'] = [{wch:12}, {wch:20}, {wch:42}, {wch:12}, {wch:20}, {wch:14}];
+  const off = 2;
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({r:0,c:0},{r:corpo.length,c:6})};
+  ws['!cols'] = [{wch:12}, {wch:26}, {wch:20}, {wch:42}, {wch:12}, {wch:20}, {wch:14}];
   for(let i=1;i<=corpo.length;i++){
     [off+3, off+4].forEach(c=>{ const cel = ws[XLSX.utils.encode_cell({r:i,c})]; if(cel) cel.z = '#,##0.00'; });
     const d = ws[XLSX.utils.encode_cell({r:i,c:0})]; if(d) d.z = 'dd/mm/yyyy';
